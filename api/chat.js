@@ -74,3 +74,4 @@ ${(documentContext || '').slice(0, 50000)}
     return res.status(500).json({ error: err.message || 'Failed to contact assistant.' });
   }
 };
+
