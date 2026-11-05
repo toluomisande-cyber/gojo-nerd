@@ -1,5 +1,4 @@
-server.js
 app/
 node_modules/
 .env*
-
+.git

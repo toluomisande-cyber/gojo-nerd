@@ -88,6 +88,10 @@ const server = http.createServer(async (req, res) => {
   fs.createReadStream(filePath).pipe(res);
 });
 
-server.listen(PORT, () => {
-  console.log(`Gojo.nerd live server running on http://localhost:${PORT}`);
-});
+if (require.main === module || !process.env.VERCEL) {
+  server.listen(PORT, () => {
+    console.log(`Gojo.nerd live server running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = server;
