@@ -1,0 +1,9 @@
+{
+  "name": "gojo-nerd",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "pdf-parse": "^2.4.5"
+  }
+}
