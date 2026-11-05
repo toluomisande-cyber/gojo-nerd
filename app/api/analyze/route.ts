@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import pdfParse from "pdf-parse";
+// @ts-ignore
+import * as pdfParseModule from "pdf-parse";
+
+async function extractPdfText(buffer: Buffer): Promise<string> {
+  const mod: any = pdfParseModule;
+  if (typeof mod === "function") {
+    const res = await mod(buffer);
+    return res?.text || "";
+  }
+  if (typeof mod?.default === "function") {
+    const res = await mod.default(buffer);
+    return res?.text || "";
+  }
+  if (mod && typeof mod.PDFParse === "function") {
+    const parser = new mod.PDFParse({ data: buffer });
+    try {
+      const res = await parser.getText();
+      return res?.text || "";
+    } finally {
+      if (typeof parser.destroy === "function") {
+        await parser.destroy().catch(() => {});
+      }
+    }
+  }
+  throw new Error("Unsupported pdf-parse module export format.");
+}
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -32,8 +57,11 @@ export async function POST(req: NextRequest) {
     if (file && file.size > 0) {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      const pdfData = await pdfParse(buffer);
-      contentToAnalyze = pdfData.text;
+      if (file.type === "application/pdf" || file.name?.toLowerCase().endsWith(".pdf")) {
+        contentToAnalyze = await extractPdfText(buffer);
+      } else {
+        contentToAnalyze = buffer.toString("utf-8");
+      }
     } else if (rawText && rawText.trim().length > 0) {
       contentToAnalyze = rawText;
     } else {
@@ -50,7 +78,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const prompt = `Analyze this study material and produce 3 takeaways, 5 key terms, 1 professor trap, and 3 multiple choice questions:\n\n"""\n${contentToAnalyze.slice(0, 80000)}\n"""`;
+    const prompt = `Analyze this study material and produce 3 takeaways, 6 key terms, 1 professor trap, 3 multiple choice questions, and 5 flashcards:\n\n"""\n${contentToAnalyze.slice(0, 80000)}\n"""`;
 
     // 2. Execute with candidate model fallback
     const parsedData = await executeWithModelFallback({
@@ -71,7 +99,7 @@ Output must strictly match this JSON schema:
   "takeaways": [
     { "num": "01", "concept": "Short Concept Name", "desc": "1-2 sentence core mechanism." }
   ],
-  "terms": ["Term 1", "Term 2", "Term 3", "Term 4", "Term 5"],
+  "terms": ["Term 1", "Term 2", "Term 3", "Term 4", "Term 5", "Term 6"],
   "trap": "Direct 1-2 sentence warning about the primary trap professors use on this topic.",
   "questions": [
     {
@@ -81,6 +109,12 @@ Output must strictly match this JSON schema:
       "critique": "Direct, witty explanation of why the wrong options fail.",
       "accolade": "Short praise confirming mastery of the concept."
     }
+  ],
+  "cards": [
+    {
+      "term": "Key Term",
+      "def": "Clear, high-yield 1-2 sentence definition or mechanism grounded in the uploaded text."
+    }
   ]
 }`,
     }, async (model) => {
@@ -88,7 +122,11 @@ Output must strictly match this JSON schema:
       return JSON.parse(result.response.text());
     });
 
-    return NextResponse.json({ success: true, data: parsedData });
+    return NextResponse.json({
+      success: true,
+      data: parsedData,
+      extractedText: contentToAnalyze.slice(0, 20000),
+    });
   } catch (error: any) {
     console.error("Analysis Pipeline Error:", error);
     return NextResponse.json(

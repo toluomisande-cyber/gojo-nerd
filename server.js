@@ -20,7 +20,24 @@ if (fs.existsSync(envPath)) {
 }
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const pdfParse = require('pdf-parse');
+const pdfParseModule = require('pdf-parse');
+
+async function extractPdfText(buffer) {
+  if (typeof pdfParseModule === 'function') {
+    const data = await pdfParseModule(buffer);
+    return data.text || '';
+  }
+  if (pdfParseModule && typeof pdfParseModule.PDFParse === 'function') {
+    const parser = new pdfParseModule.PDFParse({ data: buffer });
+    try {
+      const result = await parser.getText();
+      return result.text || '';
+    } finally {
+      if (typeof parser.destroy === 'function') await parser.destroy();
+    }
+  }
+  throw new Error('Unsupported pdf-parse module format');
+}
 
 const PORT = process.env.PORT || 4100;
 
@@ -118,8 +135,7 @@ const server = http.createServer(async (req, res) => {
       let contentToAnalyze = '';
 
       if (fileBuffer && fileBuffer.length > 0) {
-        const pdfData = await pdfParse(fileBuffer);
-        contentToAnalyze = pdfData.text;
+        contentToAnalyze = await extractPdfText(fileBuffer);
       } else if (fields.text && fields.text.trim()) {
         contentToAnalyze = fields.text.trim();
       }
@@ -130,7 +146,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const prompt = `Analyze this study material and produce 3 takeaways, 5 key terms, 1 professor trap, and 3 multiple choice questions:\n\n"""\n${contentToAnalyze.slice(0, 80000)}\n"""`;
+      const prompt = `Analyze this study material and produce 3 takeaways, 6 key terms, 1 professor trap, 3 multiple choice questions, and 5 flashcards:\n\n"""\n${contentToAnalyze.slice(0, 80000)}\n"""`;
 
       const parsedData = await executeWithModelFallback(genAI, {
         generationConfig: {
@@ -138,7 +154,7 @@ const server = http.createServer(async (req, res) => {
           temperature: 0.3,
         },
         systemInstruction: `You are Gojo.nerd, an elite academic mind powered by the Six Eyes.
-Your mission is to isolate non-negotiable core concepts, spot deceptive exam traps set by professors, and build high-yield diagnostic questions.
+Your mission is to isolate non-negotiable core concepts, spot deceptive exam traps set by professors, and build high-yield diagnostic questions and flashcards.
 
 CRITICAL RULES:
 1. Ground strictly in the provided text. Never hallucinate facts outside the material.
@@ -150,16 +166,19 @@ Output must strictly match this JSON schema:
   "takeaways": [
     { "num": "01", "concept": "Short Concept Name", "desc": "1-2 sentence core mechanism." }
   ],
-  "terms": ["Term 1", "Term 2", "Term 3", "Term 4", "Term 5"],
+  "terms": ["Term 1", "Term 2", "Term 3", "Term 4", "Term 5", "Term 6"],
   "trap": "Direct 1-2 sentence warning about the primary trap professors use on this topic.",
   "questions": [
     {
       "q": "Sharp conceptual question?",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correct": 0,
-      "critique": "Direct, witty explanation of why the wrong options fail.",
-      "accolade": "Short praise confirming mastery of the concept."
+      "critique": "Direct explanation of why the wrong options fail.",
+      "accolade": "Short confirmation of mastery of the concept."
     }
+  ],
+  "cards": [
+    { "term": "Key Term or Concept", "def": "Clear 1-2 sentence definition or mechanism from the text." }
   ]
 }`,
       }, async (model) => {
@@ -168,7 +187,11 @@ Output must strictly match this JSON schema:
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ success: true, data: parsedData }));
+      return res.end(JSON.stringify({
+        success: true,
+        extractedText: contentToAnalyze.slice(0, 20000),
+        data: parsedData
+      }));
     } catch (err) {
       console.error('API Error:', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });

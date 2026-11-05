@@ -132,6 +132,7 @@ export default function AcademicWorkspace() {
   const [activeTab, setActiveTab] = useState<"summary" | "arena" | "cards" | "chat">("summary");
   const [studyData, setStudyData] = useState<StudyPayload>(initialPayload);
   const [sourceText, setSourceText] = useState<string>("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isSynthesizing, setIsSynthesizing] = useState<boolean>(false);
 
   // Arena MCQ State
@@ -155,27 +156,182 @@ export default function AcademicWorkspace() {
   ]);
   const [chatInput, setChatInput] = useState<string>("");
 
+  const synthesizeFromTextLocally = (rawText: string, filename: string): StudyPayload => {
+    const cleaned = rawText.replace(/\r\n/g, "\n").replace(/\s+/g, " ").trim();
+    const rawSentences = cleaned
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 25 && s.length < 320);
+
+    const sentences =
+      rawSentences.length >= 3
+        ? rawSentences
+        : cleaned
+            .split(/[,;:\n]+/)
+            .map((s) => s.trim())
+            .filter((s) => s.length > 15);
+
+    const stopWords = new Set([
+      "about","above","after","again","against","all","also","among","because","been","before","being","below","between","both","Could","could","does","doing","down","during","each","first","from","further","have","having","here","into","itself","just","more","most","Must","other","over","same","should","some","such","than","that","their","them","then","there","these","they","this","those","through","under","until","very","what","when","where","which","while","with","would","your","document","section","chapter","lecture","study","notes","system","process","using"
+    ]);
+    const wordFreq: Record<string, number> = {};
+    const words = cleaned.match(/\b[A-Za-z][A-Za-z0-9-]{3,}\b/g) || [];
+    words.forEach((w) => {
+      const lower = w.toLowerCase();
+      if (stopWords.has(lower) || stopWords.has(w)) return;
+      const key = w[0] === w[0].toUpperCase() ? w : lower;
+      wordFreq[key] = (wordFreq[key] || 0) + 1;
+    });
+
+    const sortedTerms = Object.entries(wordFreq)
+      .sort((a, b) => {
+        const aCap = a[0][0] === a[0][0].toUpperCase() ? 2 : 0;
+        const bCap = b[0][0] === b[0][0].toUpperCase() ? 2 : 0;
+        return b[1] + bCap - (a[1] + aCap);
+      })
+      .slice(0, 6)
+      .map(([term]) => term.charAt(0).toUpperCase() + term.slice(1));
+
+    const terms =
+      sortedTerms.length > 0 ? sortedTerms : ["Core Principle", "Primary Mechanism", "Key Variable"];
+
+    const pickedSentences: string[] = [];
+    const step = Math.max(1, Math.floor(sentences.length / 3));
+    for (let i = 0; i < 3; i++) {
+      const s = sentences[Math.min(i * step, sentences.length - 1)] || sentences[i] || cleaned.slice(i * 120, (i + 1) * 120);
+      if (s) pickedSentences.push(s);
+    }
+
+    const takeaways: Takeaway[] = pickedSentences.map((s, idx) => {
+      const matchedTerm = terms[idx] || `Principle 0${idx + 1}`;
+      const shortHeader = s.split(/[:,-]/)[0].trim().split(/\s+/).slice(0, 7).join(" ");
+      return {
+        num: `0${idx + 1}`,
+        concept: shortHeader.length > 10 ? shortHeader : `${matchedTerm} Mechanism`,
+        desc: s,
+      };
+    });
+
+    const trapSentence =
+      sentences.find((s) =>
+        /\b(not|never|only|solely|unlike|however|whereas|except|strictly|without|must|contrast)\b/i.test(s)
+      ) ||
+      sentences[Math.min(1, sentences.length - 1)] ||
+      "Examiners frequently test subtle boundary conditions and causal direction in this material.";
+
+    const trap = `High-Yield Exam Distinction: Pay strict attention to qualifiers in the text — "${trapSentence}"`;
+
+    const questions: Question[] = pickedSentences.map((s, idx) => {
+      const focusTerm = terms[idx] || terms[0] || "this concept";
+      const distractors = [
+        `It operates independently of ${terms[(idx + 1) % terms.length] || "the primary pathway"} and reverses the described mechanism.`,
+        `It is strictly inhibited by ${terms[(idx + 2) % terms.length] || "secondary factors"} under baseline conditions.`,
+        `It only occurs outside the primary domain described in ${filename || "the source text"}.`,
+      ];
+      const correctPos = idx % 3;
+      const options = [...distractors];
+      options.splice(correctPos, 0, s.length > 135 ? s.slice(0, 132) + "..." : s);
+
+      return {
+        q: `According to ${filename || "the uploaded document"}, which statement accurately characterizes ${focusTerm}?`,
+        options,
+        correct: correctPos,
+        critique: `Review the uploaded text carefully: "${s}"`,
+        accolade: `Correct. Directly verified from your uploaded document (${filename || "Source Text"}).`,
+      };
+    });
+
+    const cards: Flashcard[] = terms.slice(0, 5).map((term, idx) => {
+      const matchingSentence =
+        sentences.find((s) => s.toLowerCase().includes(term.toLowerCase())) ||
+        pickedSentences[idx % pickedSentences.length] ||
+        "Core concept extracted from your uploaded document.";
+      return {
+        term,
+        def: matchingSentence,
+      };
+    });
+
+    return {
+      filename,
+      takeaways,
+      terms,
+      trap,
+      questions,
+      cards,
+    };
+  };
+
   // --- HANDLERS ---
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setStudyData((prev) => ({ ...prev, filename: file.name }));
-      setSourceText(
-        `[Document ingested: ${file.name} (${(file.size / 1024).toFixed(1)} KB)]\n\nClick 'Synthesize Study Canvas' to begin extraction.`
-      );
+    if (!file) return;
+    setUploadedFile(file);
+    setStudyData((prev) => ({ ...prev, filename: file.name }));
+    if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt") || file.name.toLowerCase().endsWith(".md")) {
+      const text = await file.text();
+      setSourceText(text);
+    } else {
+      setSourceText(`[Uploaded PDF: ${file.name}] — Synthesizing document...`);
     }
   };
 
-  const handleSynthesize = () => {
-    if (!sourceText.trim()) {
+  const handleSynthesize = async () => {
+    if (!sourceText.trim() && !uploadedFile) {
       alert("Please enter notes or upload a document first.");
       return;
     }
     setIsSynthesizing(true);
-    setTimeout(() => {
-      setIsSynthesizing(false);
+    const activeFilename = uploadedFile ? uploadedFile.name : "Custom_Study_Notes.txt";
+
+    try {
+      const formData = new FormData();
+      if (uploadedFile) {
+        formData.append("file", uploadedFile);
+      }
+      if (sourceText.trim() && !sourceText.startsWith("[Uploaded PDF:")) {
+        formData.append("text", sourceText.trim());
+      }
+
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json();
+
+      if (response.ok && result.success && result.data) {
+        const apiData = result.data;
+        if (result.extractedText) {
+          setSourceText(result.extractedText);
+        }
+        const fallback = synthesizeFromTextLocally(result.extractedText || sourceText, activeFilename);
+        setStudyData({
+          filename: activeFilename,
+          takeaways: Array.isArray(apiData.takeaways) && apiData.takeaways.length ? apiData.takeaways : fallback.takeaways,
+          terms: Array.isArray(apiData.terms) && apiData.terms.length ? apiData.terms : fallback.terms,
+          trap: apiData.trap || fallback.trap,
+          questions: Array.isArray(apiData.questions) && apiData.questions.length ? apiData.questions : fallback.questions,
+          cards: Array.isArray(apiData.cards) && apiData.cards.length ? apiData.cards : fallback.cards,
+        });
+      } else {
+        const localData = synthesizeFromTextLocally(sourceText, activeFilename);
+        setStudyData(localData);
+      }
+      setCurrentQIndex(0);
+      setSelectedAnswer(null);
+      setArenaScore(0);
+      setAnsweredCount(0);
+      setQuizFinished(false);
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
       setActiveTab("summary");
-    }, 600);
+    } catch {
+      const localData = synthesizeFromTextLocally(sourceText, activeFilename);
+      setStudyData(localData);
+      setActiveTab("summary");
+    } finally {
+      setIsSynthesizing(false);
+    }
   };
 
   const handleAnswerSelect = (index: number) => {

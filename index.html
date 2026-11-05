@@ -20,7 +20,12 @@
     })();
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Client-side PDF.js for instant browser PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
     tailwind.config = {
       theme: {
         extend: {
@@ -77,7 +82,7 @@
 
 <body class="bg-brandCanvas text-brandNavy font-sans antialiased h-screen flex flex-col overflow-hidden selection:bg-brandSky selection:text-brandNavy">
   
-  <!-- TOP ACCENT STATUS BAR (#4444BC) -->
+  <!-- TOP ACCENT STATUS BAR (#0F3470) -->
   <div id="top-accent-bar" class="bg-brandIndigo text-white px-6 py-1.5 flex items-center justify-between text-[11px] shrink-0 select-none">
     <div class="flex items-center gap-2 font-mono">
       <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300"></span>
@@ -119,7 +124,7 @@
 
       <!-- Active File Metadata -->
       <div class="flex items-center gap-2 px-2.5 py-1 rounded bg-brandSky border border-[#C5DFFF] font-mono text-[11px] text-brandNavy">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span id="masthead-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
         <span id="masthead-filename" class="font-semibold">Cellular_Respiration_Core.pdf</span>
         <span id="masthead-filesize" class="text-[#64748B]">(14.2 KB text)</span>
       </div>
@@ -152,7 +157,7 @@
           <input
             type="file"
             id="file-upload-input"
-            accept=".pdf,.txt"
+            accept=".pdf,.txt,.md,.csv"
             class="absolute inset-0 opacity-0 cursor-pointer z-10"
             onchange="handleFileUpload(event)"
           />
@@ -160,8 +165,8 @@
             <svg class="w-5 h-5 text-brandIndigo mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <span class="font-semibold">Upload lecture document</span>
-            <span class="text-[10px] text-[#64748B] font-mono">Drag &amp; drop PDF or syllabus</span>
+            <span id="upload-box-title" class="font-semibold">Upload lecture document</span>
+            <span id="upload-box-subtitle" class="text-[10px] text-[#64748B] font-mono">Auto-extracts &amp; analyzes PDF or text</span>
           </div>
         </div>
       </div>
@@ -186,7 +191,7 @@
           id="synthesize-btn"
           type="button"
           onclick="handleSynthesize()"
-          class="mt-3 w-full py-2.5 px-4 rounded-lg bg-brandIndigo hover:bg-brandNavy text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+          class="mt-3 w-full py-2.5 px-4 rounded-lg bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
         >
           <span id="synthesize-btn-label">Synthesize Study Canvas</span>
           <span class="font-mono">&rarr;</span>
@@ -246,8 +251,8 @@
         <!-- 1. SUMMARY VIEW -->
         <div id="view-summary" class="max-w-3xl space-y-6">
           
-          <!-- Deep Navy Header Card (#10102A) -->
-          <div class="bg-brandNavy text-white rounded-lg p-5 shadow-sm flex items-center justify-between border-l-4 border-brandIndigo">
+          <!-- Deep Navy Header Card (#0F3470) -->
+          <div class="bg-brandNavy text-white rounded-lg p-5 shadow-sm flex items-center justify-between border-l-4 border-[#93C5FD]">
             <div>
               <span class="text-[10px] font-mono uppercase tracking-widest text-[#93C5FD] font-semibold block">
                 EXECUTIVE SYNTHESIS // HIGH-YIELD CORE
@@ -257,8 +262,8 @@
               </h2>
             </div>
             <div class="text-right font-mono text-[11px] text-white/80 hidden sm:block">
-              <div>PILLARS: <strong class="text-white">03</strong></div>
-              <div>STATUS: <strong class="text-emerald-400">VERIFIED</strong></div>
+              <div>PILLARS: <strong id="banner-pillars-num" class="text-white">03</strong></div>
+              <div>STATUS: <strong id="banner-status-text" class="text-emerald-400">VERIFIED</strong></div>
             </div>
           </div>
 
@@ -315,14 +320,14 @@
                 <div class="text-right text-[10px] font-mono text-brandIndigo font-semibold">Flip Card &rarr;</div>
               </div>
 
-              <!-- Back (#10102A Deep Navy) -->
+              <!-- Back (#0F3470 Deep Blue) -->
               <div class="absolute inset-0 w-full h-full rounded-xl bg-brandNavy border border-brandIndigo text-white backface-hidden rotate-y-180 p-8 flex flex-col justify-between shadow-md">
-                <div class="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                <div class="flex justify-between items-center text-[10px] font-mono text-slate-300">
                   <span class="uppercase tracking-widest text-[#93C5FD] font-semibold">Mechanism</span>
                   <span>Back</span>
                 </div>
                 <div class="my-auto">
-                  <p id="flashcard-def" class="text-sm text-slate-200 leading-relaxed font-sans"></p>
+                  <p id="flashcard-def" class="text-sm text-white leading-relaxed font-sans"></p>
                 </div>
                 <div class="text-right text-[10px] font-mono text-[#93C5FD]">Return &rarr;</div>
               </div>
@@ -343,7 +348,7 @@
             <button
               type="button"
               onclick="nextFlashcard()"
-              class="px-4 py-1.5 rounded bg-brandIndigo text-xs font-mono text-white hover:bg-brandNavy transition-colors"
+              class="px-4 py-1.5 rounded bg-brandIndigo text-xs font-mono text-white hover:opacity-95 transition-opacity"
             >
               Next
             </button>
@@ -369,7 +374,7 @@
               />
               <button
                 type="submit"
-                class="px-4 py-2 rounded bg-brandIndigo hover:bg-brandNavy text-white font-semibold text-xs transition-colors"
+                class="px-4 py-2 rounded bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs transition-opacity"
               >
                 Submit
               </button>
@@ -505,6 +510,164 @@
         .replace(/"/g, "&quot;");
     }
 
+    // --- CLIENT-SIDE PDF.JS EXTRACTOR ---
+    async function extractTextFromPdfClient(file) {
+      if (!window.pdfjsLib) return "";
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const pageStr = textContent.items.map((item) => item.str).join(" ");
+        if (pageStr.trim()) {
+          fullText += `[Slide / Page ${pageNum}]\n${pageStr.trim()}\n\n`;
+        }
+      }
+      return fullText.trim();
+    }
+
+    // --- DETERMINISTIC CLIENT-SIDE DOCUMENT ANALYZER (Never falls back to hardcoded default slides) ---
+    function synthesizeFromTextLocally(rawText, filename) {
+      const cleaned = rawText
+        .replace(/\[Slide \/ Page \d+\]/g, "\n")
+        .replace(/\r\n/g, "\n")
+        .trim();
+
+      // Split into meaningful sentences/blocks
+      const rawSentences = cleaned
+        .split(/(?<=[.!?])\s+|\n+/)
+        .map((s) => s.replace(/^[-•*\d.)\s]+/, "").trim())
+        .filter((s) => s.length >= 35 && s.length <= 360);
+
+      const sentences = rawSentences.length > 0
+        ? rawSentences
+        : cleaned.split(/\n+/).map((s) => s.trim()).filter((s) => s.length > 10);
+
+      // Extract key domain terms (capitalized phrases, technical terms, or frequent substantive words)
+      const stopWords = new Set([
+        "The", "This", "That", "These", "Those", "There", "Their", "They", "What", "When", "Where",
+        "Which", "While", "With", "Within", "Without", "From", "Into", "Upon", "Over", "Under",
+        "Between", "Through", "During", "Before", "After", "Above", "Below", "However", "Therefore",
+        "Furthermore", "Moreover", "Because", "Although", "Unless", "Whereas", "Slide", "Page",
+        "Lecture", "Chapter", "Section", "Introduction", "Conclusion", "Summary", "Overview"
+      ]);
+
+      const termCounts = new Map();
+      const capMatches = cleaned.match(/\b[A-Z][a-zA-Z0-9-]{3,}(?:\s+[A-Z][a-zA-Z0-9-]{3,})?\b/g) || [];
+      for (const m of capMatches) {
+        const cleanTerm = m.trim();
+        const firstWord = cleanTerm.split(/\s+/)[0];
+        if (!stopWords.has(firstWord) && cleanTerm.length >= 4 && cleanTerm.length <= 34) {
+          termCounts.set(cleanTerm, (termCounts.get(cleanTerm) || 0) + 1);
+        }
+      }
+
+      // Also scan for words >= 6 chars if few capitalized terms
+      if (termCounts.size < 6) {
+        const words = cleaned.match(/\b[a-zA-Z]{6,22}\b/g) || [];
+        for (const w of words) {
+          const cap = w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+          if (!stopWords.has(cap)) {
+            termCounts.set(cap, (termCounts.get(cap) || 0) + 1);
+          }
+        }
+      }
+
+      const sortedTerms = [...termCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map((e) => e[0])
+        .slice(0, 6);
+
+      const finalTerms = sortedTerms.length > 0
+        ? sortedTerms
+        : ["Core Mechanism", "Primary Principle", "Key Distinction", "Critical Factor", "System Input", "Target Output"];
+
+      // Build 3 High-Yield Takeaways directly from the document's top sentences
+      const stepIndices = [
+        0,
+        Math.min(sentences.length - 1, Math.max(1, Math.floor(sentences.length / 3))),
+        Math.min(sentences.length - 1, Math.max(2, Math.floor((sentences.length * 2) / 3))),
+      ];
+      const uniqueIndices = [...new Set(stepIndices)].filter((i) => sentences[i]);
+
+      const takeaways = uniqueIndices.slice(0, 3).map((idx, i) => {
+        const s = sentences[idx];
+        const term = finalTerms[i] || `Principle 0${i + 1}`;
+        const colonIdx = s.indexOf(":");
+        let concept = colonIdx > 3 && colonIdx < 65
+          ? s.slice(0, colonIdx).trim()
+          : `${term} — ${s.split(/\s+/).slice(0, 6).join(" ")}...`;
+        return {
+          num: `0${i + 1}`,
+          concept,
+          desc: s,
+        };
+      });
+
+      while (takeaways.length < 3) {
+        const idx = takeaways.length;
+        takeaways.push({
+          num: `0${idx + 1}`,
+          concept: finalTerms[idx] || `Core Document Pillar 0${idx + 1}`,
+          desc: cleaned.slice(idx * 180, (idx + 1) * 180).trim() || "Synthesized directly from your uploaded document.",
+        });
+      }
+
+      // Identify a Professor Trap sentence (sentences with contrast/qualifier keywords)
+      const trapSentence =
+        sentences.find((s) =>
+          /\b(not|never|only|solely|except|however|whereas|unlike|must|critical|important|contrast|rather than)\b/i.test(s)
+        ) ||
+        sentences[Math.min(1, sentences.length - 1)] ||
+        takeaways[0].desc;
+
+      const trap = `Examiners frequently test this distinction from ${filename}: "${trapSentence}" Pay close attention to qualifiers and conditions in this mechanism.`;
+
+      // Build 3 MCQs directly grounded in the uploaded document's takeaways
+      const questions = takeaways.map((t, idx) => {
+        const otherDesc1 = takeaways[(idx + 1) % takeaways.length]?.desc?.slice(0, 95) || "It operates independently of the primary mechanism described in the text";
+        const otherDesc2 = takeaways[(idx + 2) % takeaways.length]?.desc?.slice(0, 95) || "It reverses the primary pathway under baseline conditions";
+        const correctStatement = t.desc.length > 125 ? t.desc.slice(0, 122) + "..." : t.desc;
+
+        const options = [
+          `It is completely excluded from ${finalTerms[0] || "the system"} under all conditions`,
+          correctStatement,
+          `Contrasts with the text: ${otherDesc1}...`,
+          `Unrelated mechanism: ${otherDesc2}...`,
+        ];
+
+        return {
+          q: `Based on "${filename}", which statement accurately describes "${t.concept}"?`,
+          options,
+          correct: 1,
+          critique: `Review section ${t.num} of your uploaded material: ${t.desc}`,
+          accolade: `Correct. Directly verified from your uploaded document: ${t.desc}`,
+        };
+      });
+
+      // Build Flashcards from extracted terms + sentences in the uploaded document
+      const cards = finalTerms.slice(0, 5).map((term, i) => {
+        const matchingSentence =
+          sentences.find((s) => s.toLowerCase().includes(term.toLowerCase())) ||
+          takeaways[i % takeaways.length]?.desc ||
+          cleaned.slice(0, 180);
+        return {
+          term,
+          def: matchingSentence,
+        };
+      });
+
+      return {
+        filename,
+        takeaways,
+        terms: finalTerms,
+        trap,
+        questions,
+        cards,
+      };
+    }
+
     // --- RENDERERS ---
     function setActiveTab(tabId) {
       activeTab = tabId;
@@ -530,6 +693,7 @@
       document.getElementById("banner-course-title").textContent = studyData.filename;
       document.getElementById("summary-trap").textContent = studyData.trap;
       document.getElementById("summary-pillars-count").textContent = `${studyData.takeaways.length} High-Yield Pillars`;
+      document.getElementById("banner-pillars-num").textContent = `0${studyData.takeaways.length}`;
 
       document.getElementById("summary-takeaways").innerHTML = studyData.takeaways
         .map(
@@ -572,7 +736,7 @@
             <button
               type="button"
               onclick="resetQuiz()"
-              class="px-5 py-2.5 rounded bg-brandIndigo hover:bg-brandNavy text-white font-semibold text-xs uppercase tracking-wide transition-colors"
+              class="px-5 py-2.5 rounded bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs uppercase tracking-wide transition-opacity"
             >
               Reset Session
             </button>
@@ -603,10 +767,10 @@
               type="button"
               onclick="handleAnswerSelect(${idx})"
               ${selectedAnswer !== null ? "disabled" : ""}
-              class="w-full text-left p-3.5 rounded-lg border text-xs transition-colors flex justify-between shadow-sm ${buttonStyle}"
+              class="w-full text-left p-3.5 rounded-lg border text-xs transition-colors flex justify-between gap-3 shadow-sm ${buttonStyle}"
             >
               <span>${escapeHtml(opt)}</span>
-              <span class="font-mono text-[#64748B]">0${idx + 1}</span>
+              <span class="font-mono text-[#64748B] shrink-0">0${idx + 1}</span>
             </button>
           `;
         })
@@ -626,7 +790,7 @@
             <button
               type="button"
               onclick="handleNextQuestion()"
-              class="px-5 py-2 rounded bg-brandIndigo hover:bg-brandNavy text-white font-semibold text-xs uppercase tracking-wide transition-colors"
+              class="px-5 py-2 rounded bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs uppercase tracking-wide transition-opacity"
             >
               Next Question &rarr;
             </button>
@@ -695,19 +859,52 @@
     }
 
     // --- HANDLERS ---
-    function handleFileUpload(e) {
+    async function handleFileUpload(e) {
       const file = e.target.files && e.target.files[0];
-      if (file) {
-        uploadedFile = file;
-        studyData.filename = file.name;
-        document.getElementById("masthead-filename").textContent = file.name;
-        document.getElementById("masthead-filesize").textContent = `(${(file.size / 1024).toFixed(1)} KB)`;
-        document.getElementById("source-textarea").value = `[Document ingested: ${file.name} (${(file.size / 1024).toFixed(1)} KB)]\n\nClick 'Synthesize Study Canvas' to begin extraction.`;
+      if (!file) return;
+
+      uploadedFile = file;
+      studyData.filename = file.name;
+      document.getElementById("masthead-filename").textContent = file.name;
+      document.getElementById("masthead-filesize").textContent = `(${(file.size / 1024).toFixed(1)} KB)`;
+
+      const uploadTitle = document.getElementById("upload-box-title");
+      const uploadSub = document.getElementById("upload-box-subtitle");
+      const status = document.getElementById("sidebar-status");
+      const textarea = document.getElementById("source-textarea");
+
+      uploadTitle.textContent = `Extracting ${file.name}...`;
+      uploadSub.textContent = "Reading document pages...";
+      status.textContent = "STATUS: READING FILE";
+
+      try {
+        let extracted = "";
+        if (file.name.toLowerCase().endsWith(".pdf")) {
+          extracted = await extractTextFromPdfClient(file);
+        } else {
+          extracted = await file.text();
+        }
+
+        if (extracted && extracted.trim()) {
+          textarea.value = extracted.trim();
+        } else {
+          textarea.value = "";
+        }
+      } catch (err) {
+        console.warn("Client extraction notice, delegating to server:", err);
+      } finally {
+        uploadTitle.textContent = file.name;
+        uploadSub.textContent = "Loaded • Synthesizing slides now...";
       }
+
+      // Immediately synthesize the uploaded document!
+      await handleSynthesize();
+      uploadSub.textContent = "Analyzed • Click or drag another file to replace";
     }
 
     function handleLoadSample() {
       uploadedFile = null;
+      studyData.filename = "Cellular_Respiration_Core.pdf";
       document.getElementById("source-textarea").value =
         "Cellular Respiration and ATP Generation:\nGlycolysis occurs in the cytoplasm and breaks glucose into 2 pyruvate molecules, yielding a net of 2 ATP and 2 NADH without requiring oxygen. The Krebs Cycle occurs in the mitochondrial matrix, processing Acetyl-CoA to produce NADH and FADH2. The Electron Transport Chain (ETC) sits in the inner membrane and generates the vast majority of cellular ATP via oxidative phosphorylation and the ATP Synthase proton gradient.\nOxygen acts strictly as the final electron acceptor at Complex IV. Without oxygen, oxidative phosphorylation halts, and cells must rely on anaerobic fermentation.";
     }
@@ -724,58 +921,94 @@
       const btn = document.getElementById("synthesize-btn");
       const label = document.getElementById("synthesize-btn-label");
       const status = document.getElementById("sidebar-status");
+      const bannerStatus = document.getElementById("banner-status-text");
       btn.disabled = true;
-      label.textContent = "Synthesizing Canvas...";
+      label.textContent = "Synthesizing Document...";
       status.textContent = "STATUS: SYNTHESIZING";
+      if (bannerStatus) bannerStatus.textContent = "ANALYZING...";
+
+      const activeFilename = uploadedFile ? uploadedFile.name : (studyData.filename || "Pasted_Lecture_Notes.txt");
+      let updatedByServer = false;
+      let latestText = sourceText;
 
       try {
         const formData = new FormData();
-        if (uploadedFile && !uploadedFile.name.toLowerCase().endsWith(".txt")) {
-          formData.append("file", uploadedFile);
-        } else {
+        if (sourceText) {
           formData.append("text", sourceText);
+        }
+        if (uploadedFile) {
+          formData.append("file", uploadedFile);
         }
 
         const res = await fetch("/api/analyze", { method: "POST", body: formData });
         const payload = await res.json();
+
+        if (payload && payload.extractedText && !latestText) {
+          latestText = payload.extractedText;
+          textarea.value = latestText;
+        }
+
         if (res.ok && payload.success && payload.data) {
           const d = payload.data;
-          const takeaways = Array.isArray(d.takeaways) && d.takeaways.length > 0 ? d.takeaways : initialPayload.takeaways;
-          const terms = Array.isArray(d.terms) && d.terms.length > 0 ? d.terms : initialPayload.terms;
-          const questions = Array.isArray(d.questions) && d.questions.length > 0 ? d.questions : initialPayload.questions;
-          const cards = [
-            ...takeaways.map((t) => ({ term: t.concept, def: t.desc })),
-            ...terms.map((term) => ({
-              term: typeof term === "string" ? term : term.term || "Key Term",
-              def: d.trap || "High-yield concept extracted from the active study syllabus.",
-            })),
-          ].slice(0, 6);
+          const takeaways = Array.isArray(d.takeaways) && d.takeaways.length > 0 ? d.takeaways : [];
+          const terms = Array.isArray(d.terms) && d.terms.length > 0 ? d.terms : [];
+          const questions = Array.isArray(d.questions) && d.questions.length > 0 ? d.questions : [];
+          const cards = Array.isArray(d.cards) && d.cards.length > 0
+            ? d.cards
+            : [
+                ...takeaways.map((t) => ({ term: t.concept, def: t.desc })),
+                ...terms.map((term) => ({
+                  term: typeof term === "string" ? term : term.term || "Key Term",
+                  def: d.trap || takeaways[0]?.desc || "Extracted from your uploaded study material.",
+                })),
+              ].slice(0, 6);
 
-          studyData = {
-            filename: studyData.filename,
-            takeaways,
-            terms: terms.map((t) => (typeof t === "string" ? t : t.term || "Term")),
-            trap: d.trap || studyData.trap,
-            questions,
-            cards: cards.length > 0 ? cards : initialPayload.cards,
-          };
-          currentQIndex = 0;
-          selectedAnswer = null;
-          arenaScore = 0;
-          answeredCount = 0;
-          quizFinished = false;
-          currentCardIndex = 0;
-          isFlipped = false;
+          if (takeaways.length > 0) {
+            studyData = {
+              filename: activeFilename,
+              takeaways,
+              terms: terms.map((t) => (typeof t === "string" ? t : t.term || "Term")),
+              trap: d.trap || "Watch for deceptive qualifiers in multiple-choice stems.",
+              questions: questions.length > 0 ? questions : synthesizeFromTextLocally(latestText, activeFilename).questions,
+              cards: cards.length > 0 ? cards : synthesizeFromTextLocally(latestText, activeFilename).cards,
+            };
+            updatedByServer = true;
+          }
         }
       } catch (err) {
-        console.warn("Using built-in synthesis dataset:", err);
-      } finally {
-        isSynthesizing = false;
-        btn.disabled = false;
-        label.textContent = "Synthesize Study Canvas";
-        status.textContent = "STATUS: READY";
-        setActiveTab("summary");
+        console.warn("API synthesis notice, using local document analyzer:", err);
       }
+
+      // If server API key wasn't configured or server didn't return data, analyze the actual uploaded text locally!
+      if (!updatedByServer && latestText) {
+        studyData = synthesizeFromTextLocally(latestText, activeFilename);
+      }
+
+      currentQIndex = 0;
+      selectedAnswer = null;
+      arenaScore = 0;
+      answeredCount = 0;
+      quizFinished = false;
+      currentCardIndex = 0;
+      isFlipped = false;
+
+      chatMessages = [
+        {
+          role: "gojo",
+          content: `Indexed "${studyData.filename}" (${studyData.takeaways.length} core pillars and ${studyData.terms.length} key terms extracted). Ask about any concept in your uploaded slides or test yourself in Active Recall Drills.`,
+        },
+      ];
+
+      isSynthesizing = false;
+      btn.disabled = false;
+      label.textContent = "Synthesize Study Canvas";
+      status.textContent = "STATUS: READY";
+      if (bannerStatus) bannerStatus.textContent = "VERIFIED";
+      renderSummary();
+      renderArena();
+      renderCards();
+      renderChat();
+      setActiveTab("summary");
     }
 
     function handleAnswerSelect(index) {
@@ -859,13 +1092,26 @@
           return;
         }
       } catch (err) {
-        console.warn("Fallback chat response:", err);
+        console.warn("Using local document search for chat:", err);
       }
+
+      // Grounded local answer from the user's actual uploaded document
+      const queryWords = userQuery
+        .toLowerCase()
+        .split(/\W+/)
+        .filter((w) => w.length > 3);
+      const sentences = contextStr
+        .split(/(?<=[.!?])\s+|\n+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 20);
+      const bestMatch =
+        sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
+        studyData.takeaways[0]?.desc ||
+        studyData.trap;
 
       chatMessages.push({
         role: "gojo",
-        content:
-          "Regarding that mechanism: remember that examiners frequently isolate Complex IV because it is the sole site where molecular oxygen directly binds. Keep your focus on that electron sink.",
+        content: `From "${studyData.filename}": ${bestMatch}`,
       });
       renderChat();
     }

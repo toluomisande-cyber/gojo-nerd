@@ -1,7 +1,24 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const pdfParse = require('pdf-parse');
+const pdfParseModule = require('pdf-parse');
 
 const CANDIDATE_MODELS = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3-flash-preview'];
+
+async function extractPdfText(buffer) {
+  if (typeof pdfParseModule === 'function') {
+    const data = await pdfParseModule(buffer);
+    return data.text || '';
+  }
+  if (pdfParseModule && typeof pdfParseModule.PDFParse === 'function') {
+    const parser = new pdfParseModule.PDFParse({ data: buffer });
+    try {
+      const result = await parser.getText();
+      return result.text || '';
+    } finally {
+      if (typeof parser.destroy === 'function') await parser.destroy();
+    }
+  }
+  throw new Error('Unsupported pdf-parse module format');
+}
 
 async function executeWithModelFallback(genAI, config, operation) {
   let lastError = null;
@@ -65,14 +82,6 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-      return res.status(400).json({
-        error: 'Gemini API key is not configured yet.',
-        demoFallback: true,
-      });
-    }
-
     const chunks = [];
     for await (const chunk of req) {
       chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
@@ -82,8 +91,7 @@ module.exports = async function handler(req, res) {
 
     let contentToAnalyze = '';
     if (fileBuffer && fileBuffer.length > 0) {
-      const pdfData = await pdfParse(fileBuffer);
-      contentToAnalyze = pdfData.text;
+      contentToAnalyze = await extractPdfText(fileBuffer);
     } else if (fields.text && fields.text.trim()) {
       contentToAnalyze = fields.text.trim();
     } else if (req.body && typeof req.body.text === 'string') {
@@ -94,8 +102,18 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'No readable text extracted.' });
     }
 
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+      return res.status(200).json({
+        success: false,
+        extractedText: contentToAnalyze.slice(0, 20000),
+        demoFallback: true,
+        error: 'Gemini API key not set in environment; using local document text analyzer.',
+      });
+    }
+
     const genAI = new GoogleGenerativeAI(apiKey);
-    const prompt = `Analyze this study material and produce 3 takeaways, 5 key terms, 1 professor trap, and 3 multiple choice questions:\n\n"""\n${contentToAnalyze.slice(0, 80000)}\n"""`;
+    const prompt = `Analyze this study material and produce 3 takeaways, 6 key terms, 1 professor trap, 3 multiple choice questions, and 5 flashcards:\n\n"""\n${contentToAnalyze.slice(0, 80000)}\n"""`;
 
     const parsedData = await executeWithModelFallback(
       genAI,
@@ -105,13 +123,13 @@ module.exports = async function handler(req, res) {
           temperature: 0.3,
         },
         systemInstruction: `You are Gojo.nerd, an elite academic synthesis engine.
-Isolate non-negotiable core concepts, spot deceptive exam traps set by professors, and build high-yield diagnostic questions.
+Isolate non-negotiable core concepts, spot deceptive exam traps set by professors, and build high-yield diagnostic questions and flashcards.
 Output must strictly match this JSON schema:
 {
   "takeaways": [
     { "num": "01", "concept": "Short Concept Name", "desc": "1-2 sentence core mechanism." }
   ],
-  "terms": ["Term 1", "Term 2", "Term 3", "Term 4", "Term 5"],
+  "terms": ["Term 1", "Term 2", "Term 3", "Term 4", "Term 5", "Term 6"],
   "trap": "Direct 1-2 sentence warning about the primary trap professors use on this topic.",
   "questions": [
     {
@@ -121,6 +139,9 @@ Output must strictly match this JSON schema:
       "critique": "Direct explanation of why the wrong options fail.",
       "accolade": "Short confirmation of mastery of the concept."
     }
+  ],
+  "cards": [
+    { "term": "Key Term or Concept", "def": "Clear 1-2 sentence definition or mechanism from the text." }
   ]
 }`,
       },
@@ -130,7 +151,11 @@ Output must strictly match this JSON schema:
       }
     );
 
-    return res.status(200).json({ success: true, data: parsedData });
+    return res.status(200).json({
+      success: true,
+      extractedText: contentToAnalyze.slice(0, 20000),
+      data: parsedData,
+    });
   } catch (err) {
     console.error('Vercel Analyze Error:', err);
     return res.status(500).json({ error: err.message || 'Server error during extraction' });
@@ -142,4 +167,3 @@ module.exports.config = {
     bodyParser: false,
   },
 };
-
