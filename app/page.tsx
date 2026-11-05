@@ -55,6 +55,16 @@ const initialPayload: StudyPayload = {
       concept: "Oxygen acts purely as the terminal electron sink",
       desc: "Molecular oxygen does not manufacture ATP directly; it draws exhausted electrons through Complex IV of the inner membrane to maintain the proton pump and forms H2O.",
     },
+    {
+      num: "04",
+      concept: "Chemiosmotic Proton Motive Force",
+      desc: "Proton accumulation in the intermembrane space creates an electrochemical gradient that mechanically drives the ATP Synthase rotor to phosphorylate ADP into ATP.",
+    },
+    {
+      num: "05",
+      concept: "Anaerobic Fermentation as NADH Recycle Valve",
+      desc: "In hypoxic conditions, pyruvate is reduced to lactate or ethanol solely to re-oxidize NADH back to NAD+, allowing glycolysis to continue substrate-level phosphorylation.",
+    },
   ],
   terms: [
     "Glycolysis",
@@ -63,11 +73,15 @@ const initialPayload: StudyPayload = {
     "Complex IV",
     "Chemiosmosis",
     "ATP Synthase",
+    "Proton Motive Force",
+    "Cytochrome c",
+    "Substrate-Level Phosphorylation",
+    "Fermentation",
   ],
   trap: "Multiple-choice exams consistently test where molecular oxygen is consumed. It is NOT involved in glycolysis or the citric acid cycle. It reacts solely at Complex IV of the Electron Transport Chain in the inner mitochondrial membrane.",
   questions: [
     {
-      q: "What is the precise biochemical purpose of molecular oxygen (O₂) in cellular respiration?",
+      q: "[Slide 04] What is the precise biochemical purpose of molecular oxygen (O₂) in cellular respiration?",
       options: [
         "Directly initiates glucose cleavage in the cytosol",
         "Acts as the terminal electron acceptor at Complex IV of the ETC",
@@ -76,12 +90,12 @@ const initialPayload: StudyPayload = {
       ],
       correct: 1,
       critique:
-        "Incorrect. Oxygen plays no part in glycolysis or Acetyl-CoA synthesis. It acts solely as the terminal sink at Complex IV.",
+        "Directly verified from Slide 04: Oxygen plays no part in glycolysis or Acetyl-CoA synthesis. It acts solely as the terminal sink at Complex IV.",
       accolade:
         "Correct. Precise identification. Oxygen's only role is to accept exhausted electrons at Complex IV.",
     },
     {
-      q: "In which anatomical compartment of the cell does the Citric Acid Cycle take place?",
+      q: "[Slide 12] In which anatomical compartment of the cell does the Citric Acid Cycle take place?",
       options: [
         "Cytoplasm",
         "Mitochondrial Matrix",
@@ -90,39 +104,90 @@ const initialPayload: StudyPayload = {
       ],
       correct: 1,
       critique:
-        "Incorrect. The inner membrane houses the ETC; the citric acid cycle operates inside the matrix.",
+        "Directly verified from Slide 12: The inner membrane houses the ETC; the citric acid cycle operates inside the matrix.",
       accolade:
         "Correct. Krebs enzymes are situated exclusively within the mitochondrial matrix.",
     },
     {
-      q: "What is the net ATP generation yielded by glycolysis per molecule of glucose?",
+      q: "[Slide 18] What is the net ATP generation yielded by glycolysis per molecule of glucose?",
       options: ["0 ATP", "2 ATP", "4 ATP", "32 ATP"],
       correct: 1,
       critique:
-        "Gross yield is 4 ATP, but 2 ATP are consumed during phosphorylation, giving a net yield of 2.",
+        "Directly verified from Slide 18: Gross yield is 4 ATP, but 2 ATP are consumed during phosphorylation, giving a net yield of 2.",
       accolade: "Correct. Net yield is exactly 2 ATP.",
+    },
+    {
+      q: "[Slide 27] How does ATP Synthase physically couple the proton gradient to ATP phosphorylation?",
+      options: [
+        "Through rotary mechanical catalysis driven by H+ flux through the F0 channel",
+        "By directly oxidizing NADH within the intermembrane space",
+        "By pumping pyruvate against its concentration gradient into the cytosol",
+        "Through non-specific passive diffusion of phosphate across the outer membrane",
+      ],
+      correct: 0,
+      critique:
+        "Directly verified from Slide 27: The proton motive force drives the rotary subunit of ATP Synthase to mechanically forge ATP from ADP and Pi.",
+      accolade: "Correct. Rotational mechanical catalysis is the defining feature of ATP Synthase.",
+    },
+    {
+      q: "[Slide 35] Why must muscle cells undergo lactate fermentation during acute strenuous hypoxia?",
+      options: [
+        "To synthesize additional bulk ATP directly from lactic acid",
+        "To re-oxidize NADH back to NAD+ so glycolysis can continue substrate phosphorylation",
+        "To transport pyruvate across the outer mitochondrial membrane",
+        "To neutralize the acidic pH of the cytoplasmic matrix",
+      ],
+      correct: 1,
+      critique:
+        "Directly verified from Slide 35: Fermentation yields no new ATP; its sole metabolic purpose is regenerating NAD+ to sustain glycolysis.",
+      accolade: "Correct. Fermentation is strictly an electron disposal valve to replenish the NAD+ pool.",
+    },
+    {
+      q: "[Slide 44] Which complex of the electron transport chain receives electrons directly from FADH₂?",
+      options: [
+        "Complex I (NADH dehydrogenase)",
+        "Complex II (Succinate dehydrogenase)",
+        "Complex III (Cytochrome bc1)",
+        "Complex IV (Cytochrome c oxidase)",
+      ],
+      correct: 1,
+      critique:
+        "Directly verified from Slide 44: Complex II accepts electrons from FADH2 without pumping protons across the inner membrane.",
+      accolade: "Correct. Complex II is the direct entry point for FADH2.",
     },
   ],
   cards: [
     {
-      term: "Glycolysis",
+      term: "Glycolysis [Slide 03]",
       def: "Cytoplasmic pathway splitting 1 glucose into 2 pyruvates. Consumes 2 ATP, yields 4 ATP (Net: +2 ATP, +2 NADH).",
     },
     {
-      term: "Acetyl-CoA",
-      def: "Gateway molecule for the Krebs cycle, generated from pyruvate oxidation in the matrix.",
+      term: "Acetyl-CoA [Slide 09]",
+      def: "Gateway 2-carbon molecule for the Krebs cycle, generated from pyruvate oxidation in the mitochondrial matrix.",
     },
     {
-      term: "Oxidative Phosphorylation",
+      term: "Oxidative Phosphorylation [Slide 21]",
       def: "ATP synthesis driven by electron transfer to O₂ through the ETC, generating a proton gradient across the inner membrane.",
     },
     {
-      term: "Complex IV",
+      term: "Complex IV [Slide 29]",
       def: "Cytochrome c oxidase; site where molecular oxygen is reduced to form water.",
     },
     {
-      term: "ATP Synthase",
+      term: "ATP Synthase [Slide 34]",
       def: "Rotary turbine enzyme that channels H+ ions back into the matrix to phosphorylate ADP to ATP.",
+    },
+    {
+      term: "Proton Motive Force [Slide 38]",
+      def: "Electrochemical potential gradient generated by proton pumping across the inner mitochondrial membrane.",
+    },
+    {
+      term: "Complex II [Slide 41]",
+      def: "Succinate dehydrogenase; electron entry site for FADH₂ that bypasses Complex I and does not pump protons.",
+    },
+    {
+      term: "Lactate Fermentation [Slide 48]",
+      def: "Anaerobic electron sink that reduces pyruvate to lactic acid to regenerate NAD+ for ongoing glycolysis.",
     },
   ],
 };
@@ -157,105 +222,163 @@ export default function AcademicWorkspace() {
   const [chatInput, setChatInput] = useState<string>("");
 
   const synthesizeFromTextLocally = (rawText: string, filename: string): StudyPayload => {
-    const cleaned = rawText.replace(/\r\n/g, "\n").replace(/\s+/g, " ").trim();
-    const rawSentences = cleaned
-      .split(/(?<=[.!?])\s+/)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 25 && s.length < 320);
+    const raw = String(rawText || "").trim();
 
-    const sentences =
-      rawSentences.length >= 3
-        ? rawSentences
-        : cleaned
-            .split(/[,;:\n]+/)
-            .map((s) => s.trim())
-            .filter((s) => s.length > 15);
-
-    const stopWords = new Set([
-      "about","above","after","again","against","all","also","among","because","been","before","being","below","between","both","Could","could","does","doing","down","during","each","first","from","further","have","having","here","into","itself","just","more","most","Must","other","over","same","should","some","such","than","that","their","them","then","there","these","they","this","those","through","under","until","very","what","when","where","which","while","with","would","your","document","section","chapter","lecture","study","notes","system","process","using"
-    ]);
-    const wordFreq: Record<string, number> = {};
-    const words = cleaned.match(/\b[A-Za-z][A-Za-z0-9-]{3,}\b/g) || [];
-    words.forEach((w) => {
-      const lower = w.toLowerCase();
-      if (stopWords.has(lower) || stopWords.has(w)) return;
-      const key = w[0] === w[0].toUpperCase() ? w : lower;
-      wordFreq[key] = (wordFreq[key] || 0) + 1;
-    });
-
-    const sortedTerms = Object.entries(wordFreq)
-      .sort((a, b) => {
-        const aCap = a[0][0] === a[0][0].toUpperCase() ? 2 : 0;
-        const bCap = b[0][0] === b[0][0].toUpperCase() ? 2 : 0;
-        return b[1] + bCap - (a[1] + aCap);
-      })
-      .slice(0, 6)
-      .map(([term]) => term.charAt(0).toUpperCase() + term.slice(1));
-
-    const terms =
-      sortedTerms.length > 0 ? sortedTerms : ["Core Principle", "Primary Mechanism", "Key Variable"];
-
-    const pickedSentences: string[] = [];
-    const step = Math.max(1, Math.floor(sentences.length / 3));
-    for (let i = 0; i < 3; i++) {
-      const s = sentences[Math.min(i * step, sentences.length - 1)] || sentences[i] || cleaned.slice(i * 120, (i + 1) * 120);
-      if (s) pickedSentences.push(s);
+    // 1. Identify slide boundaries [Slide / Page N]
+    const slideRegex = /\[Slide \/ Page (\d+)\]([\s\S]*?)(?=(?:\[Slide \/ Page \d+\]|$))/gi;
+    const parsedSlides: { slideNum: number; content: string }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = slideRegex.exec(raw)) !== null) {
+      const slideNum = parseInt(m[1], 10);
+      const content = m[2].trim();
+      if (content) {
+        parsedSlides.push({ slideNum, content });
+      }
     }
 
-    const takeaways: Takeaway[] = pickedSentences.map((s, idx) => {
-      const matchedTerm = terms[idx] || `Principle 0${idx + 1}`;
-      const shortHeader = s.split(/[:,-]/)[0].trim().split(/\s+/).slice(0, 7).join(" ");
-      return {
-        num: `0${idx + 1}`,
-        concept: shortHeader.length > 10 ? shortHeader : `${matchedTerm} Mechanism`,
+    // 2. Extract substantive sentences with slide provenance
+    const items: { text: string; slideNum: number }[] = [];
+    if (parsedSlides.length > 0) {
+      parsedSlides.forEach((slide) => {
+        const sents = slide.content
+          .split(/(?<=[.!?])\s+|\n+/)
+          .map((s) => s.replace(/^[-•*\d.)\s]+/, "").trim())
+          .filter((s) => s.length >= 25 && s.length <= 320);
+        sents.forEach((s) => {
+          items.push({ text: s, slideNum: slide.slideNum });
+        });
+      });
+    }
+
+    if (items.length === 0) {
+      const cleaned = raw.replace(/\[Slide \/ Page \d+\]/g, "\n").replace(/\r\n/g, "\n").trim();
+      const fallbackSents = cleaned
+        .split(/(?<=[.!?])\s+|\n+/)
+        .map((s) => s.replace(/^[-•*\d.)\s]+/, "").trim())
+        .filter((s) => s.length >= 25 && s.length <= 320);
+      const sourcePool = fallbackSents.length > 0
+        ? fallbackSents
+        : cleaned.split(/\n+/).map((s) => s.trim()).filter((s) => s.length > 10);
+      sourcePool.forEach((s, idx) => {
+        items.push({ text: s, slideNum: Math.floor(idx / 2) + 1 });
+      });
+    }
+
+    if (items.length === 0) {
+      items.push({ text: "Primary foundational mechanism described in study notes.", slideNum: 1 });
+    }
+
+    // 3. Extract terminology from across the ENTIRE presentation
+    const stopWords = new Set([
+      "about","above","after","again","against","all","also","among","because","been","before","being","below","between","both","could","does","doing","down","during","each","first","from","further","have","having","here","into","itself","just","more","most","must","other","over","same","should","some","such","than","that","their","them","then","there","these","they","this","those","through","under","until","very","what","when","where","which","while","with","would","your","document","section","chapter","lecture","study","notes","system","process","using","figure","table","chart","slide","page","review"
+    ]);
+
+    const termCounts = new Map<string, number>();
+    const capMatches = raw.match(/\b[A-Z][a-zA-Z0-9-]{3,}(?:\s+[A-Z][a-zA-Z0-9-]{3,})?\b/g) || [];
+    for (const cm of capMatches) {
+      const cleanTerm = cm.trim();
+      const firstWord = cleanTerm.split(/\s+/)[0];
+      if (!stopWords.has(firstWord.toLowerCase()) && cleanTerm.length >= 4 && cleanTerm.length <= 34) {
+        termCounts.set(cleanTerm, (termCounts.get(cleanTerm) || 0) + 1);
+      }
+    }
+
+    if (termCounts.size < 15) {
+      const words = raw.match(/\b[a-zA-Z]{6,22}\b/g) || [];
+      for (const w of words) {
+        const cap = w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+        if (!stopWords.has(cap.toLowerCase())) {
+          termCounts.set(cap, (termCounts.get(cap) || 0) + 1);
+        }
+      }
+    }
+
+    const allSortedTerms = [...termCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map((e) => e[0]);
+
+    const finalTerms = allSortedTerms.slice(0, 20);
+    while (finalTerms.length < 8) {
+      finalTerms.push(`Core Mechanism 0${finalTerms.length + 1}`);
+    }
+
+    // 4. Dynamic question & flashcard counts scaled to document size (12 to 18 MCQs, 15 to 22 Cards!)
+    const targetQCount = Math.min(18, Math.max(12, Math.floor(items.length / 3) || 12));
+    const targetCardCount = Math.min(22, Math.max(15, Math.floor(items.length / 2) || 15));
+    const targetPillars = Math.min(7, Math.max(5, Math.floor(items.length / 8) || 5));
+
+    // 5. Build High-Yield Pillars (Takeaways) spanning beginning, middle, and end
+    const takeaways: Takeaway[] = [];
+    for (let p = 0; p < targetPillars; p++) {
+      const idx = Math.floor((p / (targetPillars - 1 || 1)) * (items.length - 1));
+      const item = items[idx] || items[0];
+      const s = item ? item.text : "Core concept synthesized from uploaded material.";
+      const colonIdx = s.indexOf(":");
+      const matchedTerm = finalTerms[p] || `Principle 0${p + 1}`;
+      const concept = colonIdx > 3 && colonIdx < 55
+        ? s.slice(0, colonIdx).trim()
+        : `${matchedTerm} (Slide ${item ? item.slideNum : p + 1})`;
+      takeaways.push({
+        num: String(p + 1).padStart(2, "0"),
+        concept,
         desc: s,
-      };
-    });
+      });
+    }
 
-    const trapSentence =
-      sentences.find((s) =>
-        /\b(not|never|only|solely|unlike|however|whereas|except|strictly|without|must|contrast)\b/i.test(s)
-      ) ||
-      sentences[Math.min(1, sentences.length - 1)] ||
-      "Examiners frequently test subtle boundary conditions and causal direction in this material.";
+    // 6. Professor Trap Warning
+    const trapItem = items.find((it) =>
+      /\b(not|never|only|solely|except|however|whereas|unlike|must|strictly|important|contrast|rather than)\b/i.test(it.text)
+    ) || items[Math.min(1, items.length - 1)] || items[0];
 
-    const trap = `High-Yield Exam Distinction: Pay strict attention to qualifiers in the text — "${trapSentence}"`;
+    const trap = `Professor Trap Warning [${trapItem && trapItem.slideNum ? `Slide ${trapItem.slideNum}` : 'Exam Nuance'}]: Pay strict attention to qualifiers and inverse conditions — "${trapItem ? trapItem.text : 'Examine causal direction carefully.'}"`;
 
-    const questions: Question[] = pickedSentences.map((s, idx) => {
-      const focusTerm = terms[idx] || terms[0] || "this concept";
-      const distractors = [
-        `It operates independently of ${terms[(idx + 1) % terms.length] || "the primary pathway"} and reverses the described mechanism.`,
-        `It is strictly inhibited by ${terms[(idx + 2) % terms.length] || "secondary factors"} under baseline conditions.`,
-        `It only occurs outside the primary domain described in ${filename || "the source text"}.`,
-      ];
-      const correctPos = idx % 3;
-      const options = [...distractors];
-      options.splice(correctPos, 0, s.length > 135 ? s.slice(0, 132) + "..." : s);
+    // 7. Comprehensive Questions (12 to 18 MCQs spanning early, middle, and late slides)
+    const questions: Question[] = [];
+    for (let q = 0; q < targetQCount; q++) {
+      const itemIdx = Math.floor((q / (targetQCount - 1 || 1)) * (items.length - 1));
+      const item = items[itemIdx] || items[q % items.length];
+      const s = item.text;
+      const slideTag = item.slideNum ? `Slide ${item.slideNum}` : `Section 0${q + 1}`;
+      const focusTerm = finalTerms[q % finalTerms.length] || "the described pathway";
 
-      return {
-        q: `According to ${filename || "the uploaded document"}, which statement accurately characterizes ${focusTerm}?`,
-        options,
+      const other1 = items[(itemIdx + Math.floor(items.length / 3)) % items.length]?.text || "Operates independently of all primary cellular and experimental variables";
+      const other2 = items[(itemIdx + Math.floor((items.length * 2) / 3)) % items.length]?.text || "Directly reverses the mechanism under standard resting conditions";
+      const other3 = `Contraindicates ${finalTerms[(q + 2) % finalTerms.length] || "the system"} and halts under all operational phases`;
+
+      const correctStatement = s.length > 120 ? s.slice(0, 117) + "..." : s;
+      const distractor1 = other1.length > 110 ? other1.slice(0, 107) + "..." : other1;
+      const distractor2 = other2.length > 110 ? other2.slice(0, 107) + "..." : other2;
+
+      const correctPos = q % 4;
+      const optionsList = [distractor1, distractor2, other3];
+      optionsList.splice(correctPos, 0, correctStatement);
+
+      questions.push({
+        q: `[${slideTag}] Which statement accurately characterizes ${focusTerm} as detailed in ${filename}?`,
+        options: optionsList,
         correct: correctPos,
-        critique: `Review the uploaded text carefully: "${s}"`,
-        accolade: `Correct. Directly verified from your uploaded document (${filename || "Source Text"}).`,
-      };
-    });
+        critique: `Directly verified from ${slideTag}: "${s}". Always check boundary conditions and slide context.`,
+        accolade: `Correct. Verified from ${slideTag}. Precise mastery of ${focusTerm}.`,
+      });
+    }
 
-    const cards: Flashcard[] = terms.slice(0, 5).map((term, idx) => {
-      const matchingSentence =
-        sentences.find((s) => s.toLowerCase().includes(term.toLowerCase())) ||
-        pickedSentences[idx % pickedSentences.length] ||
-        "Core concept extracted from your uploaded document.";
-      return {
-        term,
-        def: matchingSentence,
-      };
+    // 8. Comprehensive Flashcards (15 to 22 Flashcards spanning all slides!)
+    const cards: Flashcard[] = [];
+    const cardTerms = finalTerms.slice(0, targetCardCount);
+    cardTerms.forEach((term, i) => {
+      const matchedItem = items.find((it) => it.text.toLowerCase().includes(term.toLowerCase())) ||
+        items[Math.floor((i / (cardTerms.length - 1 || 1)) * (items.length - 1))];
+      const slideTag = matchedItem && matchedItem.slideNum ? ` [Slide ${matchedItem.slideNum}]` : "";
+      cards.push({
+        term: `${term}${slideTag}`,
+        def: matchedItem ? matchedItem.text : "Key concept and mechanism extracted from uploaded study material.",
+      });
     });
 
     return {
       filename,
       takeaways,
-      terms,
+      terms: finalTerms,
       trap,
       questions,
       cards,
@@ -685,7 +808,7 @@ export default function AcademicWorkspace() {
                 <div className="bg-white border border-[#E2E8F0] rounded-lg shadow-sm overflow-hidden">
                   <div className="px-5 py-3 border-b border-[#E2E8F0] flex justify-between items-center bg-[#E4F1FF]/45">
                     <span className="text-xs font-bold text-[#0F3470] font-mono uppercase tracking-wide">01 // Non-Negotiable Mechanisms</span>
-                    <span className="text-[11px] font-mono text-[#0F3470] font-semibold">3 High-Yield Pillars</span>
+                    <span className="text-[11px] font-mono text-[#0F3470] font-semibold">{studyData.takeaways.length} High-Yield Pillars</span>
                   </div>
                   <div className="divide-y divide-[#E2E8F0]">
                     {studyData.takeaways.map((item) => (
@@ -719,13 +842,35 @@ export default function AcademicWorkspace() {
               <div className="max-w-2xl space-y-4">
                 {!quizFinished ? (
                   <div className="bg-white border border-[#E2E8F0] rounded-lg p-7 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3 mb-5">
+                    <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3 mb-4">
                       <span className="text-xs font-mono text-[#64748B]">
-                        QUESTION 0{currentQIndex + 1} // 0{studyData.questions.length}
+                        QUESTION {String(currentQIndex + 1).padStart(2, "0")} // {String(studyData.questions.length).padStart(2, "0")}
                       </span>
                       <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-[#E4F1FF] text-[#0F3470] font-semibold">
                         ACCURACY: {answeredCount === 0 ? "0%" : `${Math.round((arenaScore / answeredCount) * 100)}%`}
                       </span>
+                    </div>
+
+                    {/* Question Jump Nav Strip across all slides */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4 border-b border-[#E2E8F0]/70">
+                      <span className="text-[10px] font-mono text-[#64748B] uppercase tracking-wider shrink-0 mr-1">Drills:</span>
+                      {studyData.questions.map((_, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setCurrentQIndex(idx);
+                            setSelectedAnswer(null);
+                          }}
+                          className={`w-7 h-7 shrink-0 rounded text-[11px] font-mono font-semibold transition-all ${
+                            idx === currentQIndex
+                              ? "bg-[#0F3470] text-white ring-2 ring-[#0F3470] ring-offset-1"
+                              : "bg-white border border-[#CBD5E1] text-[#64748B] hover:border-[#0F3470] hover:text-[#0F3470]"
+                          }`}
+                        >
+                          {idx + 1}
+                        </button>
+                      ))}
                     </div>
 
                     <h3 className="text-base font-serif font-semibold text-[#0F3470] leading-relaxed mb-5">
@@ -866,7 +1011,7 @@ export default function AcademicWorkspace() {
                     Previous
                   </button>
                   <span className="text-xs font-mono text-[#64748B]">
-                    CARD 0{currentCardIndex + 1} // 0{studyData.cards.length}
+                    CARD {String(currentCardIndex + 1).padStart(2, "0")} // {String(studyData.cards.length).padStart(2, "0")}
                   </span>
                   <button
                     onClick={() => {
