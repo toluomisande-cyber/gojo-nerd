@@ -432,24 +432,61 @@ export default function AcademicWorkspace() {
     }
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
-    const userQuery = chatInput;
-    setChatMessages((prev) => [...prev, { role: "user", content: userQuery }]);
+    const userQuery = chatInput.trim();
+    const updatedHistory: ChatMessage[] = [...chatMessages, { role: "user", content: userQuery }];
+    setChatMessages(updatedHistory);
     setChatInput("");
 
-    setTimeout(() => {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          role: "gojo",
-          content:
-            "Regarding that mechanism: remember that examiners frequently isolate Complex IV because it is the sole site where molecular oxygen directly binds. Keep your focus on that electron sink.",
-        },
-      ]);
-    }, 450);
+    const contextStr =
+      sourceText.trim() ||
+      `${studyData.trap}\n${studyData.takeaways.map((t) => `${t.concept}: ${t.desc}`).join("\n")}`;
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userQuery,
+          documentContext: contextStr,
+          history: updatedHistory.slice(0, -1).map((m) => ({
+            role: m.role === "user" ? "user" : "model",
+            content: m.content,
+          })),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data && data.reply) {
+        setChatMessages((prev) => [...prev, { role: "gojo", content: data.reply }]);
+        return;
+      }
+    } catch {
+      // Fallback to local grounded document search
+    }
+
+    const queryWords = userQuery
+      .toLowerCase()
+      .split(/\W+/)
+      .filter((w) => w.length > 3);
+    const sentences = contextStr
+      .split(/(?<=[.!?])\s+|\n+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 20);
+    const bestMatch =
+      sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
+      studyData.takeaways[0]?.desc ||
+      studyData.trap;
+
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        role: "gojo",
+        content: `From "${studyData.filename}": ${bestMatch}`,
+      },
+    ]);
   };
 
   return (

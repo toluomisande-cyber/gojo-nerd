@@ -3,7 +3,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-const CANDIDATE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
+const CANDIDATE_MODELS = [
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+];
 
 async function executeWithModelFallback(config: any, operation: (model: any) => Promise<any>) {
   let lastError: any = null;

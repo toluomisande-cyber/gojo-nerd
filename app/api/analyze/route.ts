@@ -3,7 +3,29 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // @ts-ignore
 import * as pdfParseModule from "pdf-parse";
 
-const CANDIDATE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
+const CANDIDATE_MODELS = [
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+];
+
+function parseJsonSafe(rawText: string) {
+  const cleaned = String(rawText || "")
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+    }
+    throw new Error("Model did not return valid JSON");
+  }
+}
 
 function withModelTimeout<T>(promise: Promise<T>, ms = 7500): Promise<T> {
   return Promise.race([
@@ -212,7 +234,7 @@ Output must strictly match this JSON schema:
       },
       async (model) => {
         const result = await model.generateContent(promptParts);
-        return JSON.parse(result.response.text());
+        return parseJsonSafe(result.response.text());
       }
     );
 

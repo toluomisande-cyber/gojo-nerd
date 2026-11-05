@@ -1,6 +1,11 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const CANDIDATE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
+const CANDIDATE_MODELS = [
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+];
 
 function withModelTimeout(promise, ms = 7500) {
   return Promise.race([
@@ -9,6 +14,23 @@ function withModelTimeout(promise, ms = 7500) {
       setTimeout(() => reject(new Error(`Model call timed out after ${ms}ms`)), ms)
     ),
   ]);
+}
+
+function parseJsonSafe(rawText) {
+  const cleaned = String(rawText || '')
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+    }
+    throw new Error('Model did not return valid JSON');
+  }
 }
 
 function detectMimeFromBuffer(buf, fallbackMime, filename) {
@@ -30,19 +52,23 @@ function detectMimeFromBuffer(buf, fallbackMime, filename) {
 async function extractPdfTextWithTimeout(buffer, timeoutMs = 4500) {
   return Promise.race([
     (async () => {
-      const pdfParseModule = require('pdf-parse');
-      if (typeof pdfParseModule === 'function') {
-        const data = await pdfParseModule(buffer);
-        return data.text || '';
-      }
-      if (pdfParseModule && typeof pdfParseModule.PDFParse === 'function') {
-        const parser = new pdfParseModule.PDFParse({ data: buffer });
-        try {
-          const result = await parser.getText();
-          return result.text || '';
-        } finally {
-          if (typeof parser.destroy === 'function') await parser.destroy().catch(() => {});
+      try {
+        const pdfParseModule = require('pdf-parse');
+        if (typeof pdfParseModule === 'function') {
+          const data = await pdfParseModule(buffer);
+          return data.text || '';
         }
+        if (pdfParseModule && typeof pdfParseModule.PDFParse === 'function') {
+          const parser = new pdfParseModule.PDFParse({ data: buffer });
+          try {
+            const result = await parser.getText();
+            return result.text || '';
+          } finally {
+            if (typeof parser.destroy === 'function') await parser.destroy().catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.warn('pdf-parse load/extract notice:', e.message);
       }
       return '';
     })(),
@@ -65,6 +91,9 @@ async function executeWithModelFallback(genAI, config, operation) {
 }
 
 function parseMultipartBuffer(buffer, contentType) {
+  if (!buffer || buffer.length === 0) {
+    return { fields: {}, fileBuffer: null, fileMime: null, fileName: null };
+  }
   const boundaryMatch = (contentType || '').match(/boundary=(?:"([^"]+)"|([^;]+))/i);
   const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
   if (!boundary) {
@@ -111,20 +140,49 @@ function parseMultipartBuffer(buffer, contentType) {
   return { fields, fileBuffer, fileMime, fileName };
 }
 
+async function extractRequestPayload(req) {
+  // 1. If Vercel or middleware already parsed req.body as an object
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    return { fields: req.body, fileBuffer: null, fileMime: null, fileName: null };
+  }
+  // 2. If req.body was buffered by Vercel runtime
+  if (Buffer.isBuffer(req.body)) {
+    return parseMultipartBuffer(req.body, req.headers['content-type']);
+  }
+  // 3. If req.body is a string
+  if (typeof req.body === 'string' && req.body.length > 0) {
+    try {
+      return { fields: JSON.parse(req.body), fileBuffer: null, fileMime: null, fileName: null };
+    } catch {
+      return parseMultipartBuffer(Buffer.from(req.body, 'utf8'), req.headers['content-type']);
+    }
+  }
+  // 4. Otherwise read raw request stream (local server.js or unparsed stream)
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  const rawBuffer = Buffer.concat(chunks);
+  return parseMultipartBuffer(rawBuffer, req.headers['content-type']);
+}
+
 module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const chunks = [];
-    for await (const chunk of req) {
-      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-    }
-    const rawBuffer = Buffer.concat(chunks);
-    const { fields, fileBuffer, fileMime, fileName } = parseMultipartBuffer(rawBuffer, req.headers['content-type']);
+    const { fields, fileBuffer, fileMime, fileName } = await extractRequestPayload(req);
 
-    let contentToAnalyze = (fields.text || '').trim();
+    let contentToAnalyze = String(fields.text || '').trim();
     const inlineParts = [];
 
     // 1. Check if client sent base64 image(s) (uploaded image or rendered scanned PDF page)
@@ -159,11 +217,7 @@ module.exports = async function handler(req, res) {
         }
       } else if (detectedMime === 'application/pdf') {
         if (!contentToAnalyze) {
-          try {
-            contentToAnalyze = (await extractPdfTextWithTimeout(fileBuffer)).trim();
-          } catch (e) {
-            console.warn('PDF text parse notice, falling back to multimodal:', e.message);
-          }
+          contentToAnalyze = (await extractPdfTextWithTimeout(fileBuffer)).trim();
         }
         if (!contentToAnalyze && inlineParts.length === 0 && fileBuffer.length < 4 * 1024 * 1024) {
           inlineParts.push({
@@ -243,7 +297,7 @@ Output must strictly match this JSON schema:
       },
       async (model) => {
         const result = await model.generateContent(promptParts);
-        return JSON.parse(result.response.text());
+        return parseJsonSafe(result.response.text());
       }
     );
 
@@ -261,12 +315,10 @@ Output must strictly match this JSON schema:
     });
   } catch (err) {
     console.error('Vercel Analyze Error:', err);
-    return res.status(500).json({ error: err.message || 'Server error during extraction' });
+    return res.status(200).json({
+      success: false,
+      demoFallback: true,
+      error: err.message || 'Server fallback triggered',
+    });
   }
-};
-
-module.exports.config = {
-  api: {
-    bodyParser: false,
-  },
 };

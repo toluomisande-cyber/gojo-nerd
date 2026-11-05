@@ -1,13 +1,27 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const CANDIDATE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
+const CANDIDATE_MODELS = [
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+];
+
+function withModelTimeout(promise, ms = 7500) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Model call timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
 
 async function executeWithModelFallback(genAI, config, operation) {
   let lastError = null;
   for (const modelName of CANDIDATE_MODELS) {
     try {
       const model = genAI.getGenerativeModel({ ...config, model: modelName });
-      return await operation(model);
+      return await withModelTimeout(operation(model), 7500);
     } catch (err) {
       lastError = err;
       console.warn(`[Gemini Fallback] Model ${modelName} failed: ${err.message?.slice(0, 80)}`);
@@ -17,6 +31,14 @@ async function executeWithModelFallback(genAI, config, operation) {
 }
 
 module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -28,13 +50,19 @@ module.exports = async function handler(req, res) {
     }
 
     let body = req.body;
-    if (!body || typeof body === 'string') {
-      const chunks = [];
-      for await (const chunk of req) {
-        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    if (!body || typeof body === 'string' || Buffer.isBuffer(body)) {
+      if (Buffer.isBuffer(body)) {
+        body = JSON.parse(body.toString('utf8') || '{}');
+      } else if (typeof body === 'string' && body.length > 0) {
+        body = JSON.parse(body);
+      } else {
+        const chunks = [];
+        for await (const chunk of req) {
+          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+        }
+        const raw = Buffer.concat(chunks).toString('utf8');
+        body = raw ? JSON.parse(raw) : {};
       }
-      const raw = Buffer.concat(chunks).toString('utf8');
-      body = raw ? JSON.parse(raw) : {};
     }
 
     const { message, documentContext, history } = body;
@@ -74,4 +102,3 @@ ${(documentContext || '').slice(0, 50000)}
     return res.status(500).json({ error: err.message || 'Failed to contact assistant.' });
   }
 };
-
