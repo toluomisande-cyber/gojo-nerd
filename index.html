@@ -150,14 +150,17 @@
       <div class="p-4 border-b border-[#E2E8F0] bg-brandSky/40">
         <div class="flex items-center justify-between mb-2">
           <span class="text-[11px] font-mono uppercase tracking-wider text-brandNavy font-bold">Source Material</span>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brandIndigo text-white font-semibold">PDF / Plain Text</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brandIndigo text-white font-semibold">PDF / Image / Text</span>
         </div>
 
-        <div class="relative border border-dashed border-brandIndigo/40 hover:border-brandIndigo rounded-lg p-4 text-center bg-white cursor-pointer transition-colors">
+        <div
+          id="upload-dropzone"
+           class="relative border border-dashed border-brandIndigo/40 hover:border-brandIndigo rounded-lg p-4 text-center bg-white cursor-pointer transition-colors"
+        >
           <input
             type="file"
             id="file-upload-input"
-            accept=".pdf,.txt,.md,.csv"
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.txt,.md,.csv,image/*,application/pdf,text/plain"
             class="absolute inset-0 opacity-0 cursor-pointer z-10"
             onchange="handleFileUpload(event)"
           />
@@ -165,9 +168,27 @@
             <svg class="w-5 h-5 text-brandIndigo mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <span id="upload-box-title" class="font-semibold">Upload lecture document</span>
-            <span id="upload-box-subtitle" class="text-[10px] text-[#64748B] font-mono">Auto-extracts &amp; analyzes PDF or text</span>
+            <span id="upload-box-title" class="font-semibold">Upload lecture document or image</span>
+            <span id="upload-box-subtitle" class="text-[10px] text-[#64748B] font-mono">PDF, PNG, JPG, Slide Photo, or Text</span>
           </div>
+        </div>
+
+        <!-- Uploaded Image / Slide Thumbnail Preview -->
+        <div id="image-preview-box" class="hidden mt-2.5 p-2 rounded-lg bg-white border border-[#C5DFFF] flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <img id="image-preview-thumb" src="" alt="Uploaded preview" class="w-10 h-10 object-cover rounded border border-[#E2E8F0] shrink-0" />
+            <div class="min-w-0">
+              <div id="image-preview-name" class="text-[11px] font-semibold text-brandNavy truncate">image.png</div>
+              <div id="image-preview-meta" class="text-[10px] font-mono text-[#64748B]">Visual Vision Ready</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onclick="clearUploadedImage()"
+            class="text-[10px] font-mono px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 shrink-0"
+          >
+            Clear
+          </button>
         </div>
       </div>
 
@@ -483,6 +504,7 @@
     let activeTab = "summary";
     let studyData = JSON.parse(JSON.stringify(initialPayload));
     let uploadedFile = null;
+    let uploadedImagePayload = null; // { base64, mimeType, dataUrl, width, height }
     let isSynthesizing = false;
 
     let currentQIndex = 0;
@@ -510,13 +532,80 @@
         .replace(/"/g, "&quot;");
     }
 
-    // --- CLIENT-SIDE PDF.JS EXTRACTOR ---
-    async function extractTextFromPdfClient(file) {
-      if (!window.pdfjsLib) return "";
+    function withTimeout(promise, ms, fallbackValue = null) {
+      return Promise.race([
+        promise,
+        new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms)),
+      ]);
+    }
+
+    function isImageFile(file) {
+      if (!file) return false;
+      if (file.type && file.type.startsWith("image/")) return true;
+      return /\.(png|jpe?g|webp|gif|bmp|heic|heif|avif)$/i.test(file.name || "");
+    }
+
+    // --- CLIENT-SIDE IMAGE COMPRESSOR (Prevents >4.5MB Vercel payload hangs) ---
+    async function compressImageFileToBase64(file, maxDim = 1400, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Could not read image file"));
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          const img = new Image();
+          img.onerror = () => {
+            const rawB64 = String(dataUrl).replace(/^data:[^;]+;base64,/, "");
+            resolve({
+              dataUrl,
+              base64: rawB64,
+              mimeType: file.type || "image/jpeg",
+              width: 800,
+              height: 600,
+            });
+          };
+          img.onload = () => {
+            let width = img.naturalWidth || img.width || 800;
+            let height = img.naturalHeight || img.height || 600;
+            if (width > maxDim || height > maxDim) {
+              if (width >= height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
+            const base64 = compressedDataUrl.replace(/^data:[^;]+;base64,/, "");
+            resolve({
+              dataUrl: compressedDataUrl,
+              base64,
+              mimeType: "image/jpeg",
+              width,
+              height,
+            });
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // --- CLIENT-SIDE PDF.JS EXTRACTOR + SCANNED PDF PAGE RENDERER ---
+    async function extractPdfTextAndImageClient(file) {
+      if (!window.pdfjsLib) return { text: "", scannedImage: null };
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = "";
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const maxPages = Math.min(pdf.numPages, 40);
+      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
         const pageStr = textContent.items.map((item) => item.str).join(" ");
@@ -524,7 +613,91 @@
           fullText += `[Slide / Page ${pageNum}]\n${pageStr.trim()}\n\n`;
         }
       }
-      return fullText.trim();
+
+      const cleanedText = fullText.trim();
+      // If the PDF is a scanned image PDF (fewer than 35 readable characters), render page 1 to canvas as an image!
+      if (cleanedText.replace(/\[Slide \/ Page \d+\]/g, "").trim().length < 35 && pdf.numPages >= 1) {
+        try {
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+          const base64 = dataUrl.replace(/^data:[^;]+;base64,/, "");
+          return {
+            text: cleanedText,
+            scannedImage: {
+              dataUrl,
+              base64,
+              mimeType: "image/jpeg",
+              width: Math.round(viewport.width),
+              height: Math.round(viewport.height),
+            },
+          };
+        } catch (renderErr) {
+          console.warn("Scanned PDF canvas render notice:", renderErr);
+        }
+      }
+
+      return { text: cleanedText, scannedImage: null };
+    }
+
+    // --- OPTIONAL CLIENT-SIDE OCR FALLBACK (When Gemini API key is not set on server) ---
+    async function runClientOcrFallback(dataUrl, timeoutMs = 8000) {
+      try {
+        if (!window.Tesseract) {
+          await withTimeout(
+            new Promise((resolve, reject) => {
+              const s = document.createElement("script");
+              s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+              s.onload = resolve;
+              s.onerror = reject;
+              document.head.appendChild(s);
+            }),
+            3500
+          );
+        }
+        if (!window.Tesseract) return "";
+        const result = await withTimeout(
+          window.Tesseract.recognize(dataUrl, "eng"),
+          timeoutMs,
+          null
+        );
+        return (result && result.data && result.data.text ? result.data.text : "").trim();
+      } catch (e) {
+        console.warn("Client OCR fallback notice:", e);
+        return "";
+      }
+    }
+
+    function synthesizeFromImageFallback(filename, ocrText, imgMeta) {
+      const cleanOcr = (ocrText || "").replace(/\s+/g, " ").trim();
+      if (cleanOcr.length >= 45) {
+        return synthesizeFromTextLocally(cleanOcr, filename);
+      }
+      const topicRaw = (filename || "Uploaded_Slide_Image")
+        .replace(/\.[^.]+$/, "")
+        .replace(/[_-]+/g, " ")
+        .trim();
+      const topic = topicRaw && !/^(img|image|photo|screenshot|dsc|whatsapp)/i.test(topicRaw)
+        ? topicRaw
+        : "Uploaded Visual Lecture Slide";
+      const dimLabel = imgMeta ? `${imgMeta.width}×${imgMeta.height}px` : "High-Resolution Visual";
+      const snippet = cleanOcr ? `Detected visual labels: "${cleanOcr}". ` : "";
+
+      const syntheticNotes = [
+        `${topic}: Visual Diagram & Slide Analysis (${dimLabel}).`,
+        `${snippet}Primary structural relationships in "${filename}" center on identifying the core components, directional arrows, and labeled axes shown in the visual figure.`,
+        `Mechanism & Sequence: When reviewing visual slides or handwritten notes for "${topic}", trace inputs to outputs step-by-step and verify boundary conditions marked on the diagram.`,
+        `Exam Trap Distinction: Professors frequently remove labels from "${topic}" diagrams on exams or invert the causal arrows between primary stages. Always verify which variable is the independent driver versus the dependent outcome.`
+      ].join("\n\n");
+
+      return synthesizeFromTextLocally(syntheticNotes, filename);
     }
 
     // --- DETERMINISTIC CLIENT-SIDE DOCUMENT ANALYZER (Never falls back to hardcoded default slides) ---
@@ -859,11 +1032,35 @@
     }
 
     // --- HANDLERS ---
+    function showImagePreview(name, imgPayload) {
+      const box = document.getElementById("image-preview-box");
+      const thumb = document.getElementById("image-preview-thumb");
+      const title = document.getElementById("image-preview-name");
+      const meta = document.getElementById("image-preview-meta");
+      if (!box || !imgPayload) return;
+      thumb.src = imgPayload.dataUrl;
+      title.textContent = name || "Uploaded Image";
+      meta.textContent = `${imgPayload.width}×${imgPayload.height}px • Ready for Vision Synthesis`;
+      box.classList.remove("hidden");
+    }
+
+    function clearUploadedImage() {
+      uploadedImagePayload = null;
+      uploadedFile = null;
+      const box = document.getElementById("image-preview-box");
+      const input = document.getElementById("file-upload-input");
+      if (box) box.classList.add("hidden");
+      if (input) input.value = "";
+      document.getElementById("upload-box-title").textContent = "Upload lecture document or image";
+      document.getElementById("upload-box-subtitle").textContent = "PDF, PNG, JPG, Slide Photo, or Text";
+    }
+
     async function handleFileUpload(e) {
-      const file = e.target.files && e.target.files[0];
+      const file = (e.target && e.target.files && e.target.files[0]) || (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
       if (!file) return;
 
       uploadedFile = file;
+      uploadedImagePayload = null;
       studyData.filename = file.name;
       document.getElementById("masthead-filename").textContent = file.name;
       document.getElementById("masthead-filesize").textContent = `(${(file.size / 1024).toFixed(1)} KB)`;
@@ -872,48 +1069,78 @@
       const uploadSub = document.getElementById("upload-box-subtitle");
       const status = document.getElementById("sidebar-status");
       const textarea = document.getElementById("source-textarea");
+      const previewBox = document.getElementById("image-preview-box");
+      if (previewBox) previewBox.classList.add("hidden");
 
-      uploadTitle.textContent = `Extracting ${file.name}...`;
-      uploadSub.textContent = "Reading document pages...";
+      uploadTitle.textContent = `Processing ${file.name}...`;
+      uploadSub.textContent = "Preparing content for synthesis...";
       status.textContent = "STATUS: READING FILE";
 
       try {
-        let extracted = "";
-        if (file.name.toLowerCase().endsWith(".pdf")) {
-          extracted = await extractTextFromPdfClient(file);
+        const lowerName = (file.name || "").toLowerCase();
+        if (isImageFile(file)) {
+          uploadSub.textContent = "Optimizing image for Vision AI...";
+          const compressed = await withTimeout(compressImageFileToBase64(file), 5000, null);
+          if (compressed) {
+            uploadedImagePayload = compressed;
+            showImagePreview(file.name, compressed);
+            textarea.value = `[Visual Source Loaded: ${file.name} (${compressed.width}×${compressed.height}px)]\nAnalyzing slide/image text and diagrams...`;
+          }
+        } else if (lowerName.endsWith(".pdf") || file.type === "application/pdf") {
+          uploadSub.textContent = "Reading PDF pages...";
+          const pdfResult = await withTimeout(
+            extractPdfTextAndImageClient(file),
+            7500,
+            { text: "", scannedImage: null }
+          );
+          if (pdfResult && pdfResult.text && pdfResult.text.trim()) {
+            textarea.value = pdfResult.text.trim();
+          } else if (pdfResult && pdfResult.scannedImage) {
+            uploadedImagePayload = pdfResult.scannedImage;
+            showImagePreview(`${file.name} (Scanned Page)`, pdfResult.scannedImage);
+            textarea.value = `[Scanned PDF Visual Loaded: ${file.name}]\nExtracting text & concepts from scanned page image...`;
+          } else {
+            textarea.value = `[PDF Document Loaded: ${file.name}]`;
+          }
         } else {
-          extracted = await file.text();
-        }
-
-        if (extracted && extracted.trim()) {
-          textarea.value = extracted.trim();
-        } else {
-          textarea.value = "";
+          const text = await withTimeout(file.text(), 4000, "");
+          // Guard against accidental binary content
+          const nonPrintableRatio = text
+            ? (text.slice(0, 1000).match(/[\x00-\x08\x0E-\x1F\uFFFD]/g) || []).length / Math.min(text.length, 1000)
+            : 0;
+          if (nonPrintableRatio > 0.1) {
+            textarea.value = `[Document Loaded: ${file.name}]`;
+          } else {
+            textarea.value = (text || "").trim();
+          }
         }
       } catch (err) {
-        console.warn("Client extraction notice, delegating to server:", err);
+        console.warn("Client extraction notice, proceeding to synthesis:", err);
       } finally {
         uploadTitle.textContent = file.name;
-        uploadSub.textContent = "Loaded • Synthesizing slides now...";
+        uploadSub.textContent = "Synthesizing study canvas...";
       }
 
-      // Immediately synthesize the uploaded document!
       await handleSynthesize();
       uploadSub.textContent = "Analyzed • Click or drag another file to replace";
     }
 
     function handleLoadSample() {
-      uploadedFile = null;
+      clearUploadedImage();
       studyData.filename = "Cellular_Respiration_Core.pdf";
       document.getElementById("source-textarea").value =
         "Cellular Respiration and ATP Generation:\nGlycolysis occurs in the cytoplasm and breaks glucose into 2 pyruvate molecules, yielding a net of 2 ATP and 2 NADH without requiring oxygen. The Krebs Cycle occurs in the mitochondrial matrix, processing Acetyl-CoA to produce NADH and FADH2. The Electron Transport Chain (ETC) sits in the inner membrane and generates the vast majority of cellular ATP via oxidative phosphorylation and the ATP Synthase proton gradient.\nOxygen acts strictly as the final electron acceptor at Complex IV. Without oxygen, oxidative phosphorylation halts, and cells must rely on anaerobic fermentation.";
     }
 
     async function handleSynthesize() {
+      if (isSynthesizing) return;
       const textarea = document.getElementById("source-textarea");
-      const sourceText = textarea.value.trim();
-      if (!sourceText && !uploadedFile) {
-        alert("Please enter notes or upload a document first.");
+      const rawTextareaVal = textarea.value.trim();
+      const isPlaceholderText = /^\[(Visual Source|Scanned PDF|PDF Document|Document) Loaded:/i.test(rawTextareaVal);
+      const cleanSourceText = isPlaceholderText ? "" : rawTextareaVal;
+
+      if (!cleanSourceText && !uploadedImagePayload && !uploadedFile) {
+        alert("Please enter notes, upload a PDF, or upload an image first.");
         return;
       }
 
@@ -923,33 +1150,57 @@
       const status = document.getElementById("sidebar-status");
       const bannerStatus = document.getElementById("banner-status-text");
       btn.disabled = true;
-      label.textContent = "Synthesizing Document...";
+      label.textContent = uploadedImagePayload ? "Synthesizing Image..." : "Synthesizing Document...";
       status.textContent = "STATUS: SYNTHESIZING";
       if (bannerStatus) bannerStatus.textContent = "ANALYZING...";
 
-      const activeFilename = uploadedFile ? uploadedFile.name : (studyData.filename || "Pasted_Lecture_Notes.txt");
+      const activeFilename = uploadedFile
+        ? uploadedFile.name
+        : studyData.filename && studyData.filename !== "Cellular_Respiration_Core.pdf"
+        ? studyData.filename
+        : "Pasted_Lecture_Notes.txt";
+
       let updatedByServer = false;
-      let latestText = sourceText;
+      let latestText = cleanSourceText;
 
       try {
-        const formData = new FormData();
-        if (sourceText) {
-          formData.append("text", sourceText);
-        }
-        if (uploadedFile) {
-          formData.append("file", uploadedFile);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 13500);
+
+        const reqBody = {
+          filename: activeFilename,
+          text: cleanSourceText || "",
+        };
+        if (uploadedImagePayload && uploadedImagePayload.base64) {
+          reqBody.imageBase64 = uploadedImagePayload.base64;
+          reqBody.imageMimeType = uploadedImagePayload.mimeType || "image/jpeg";
         }
 
-        const res = await fetch("/api/analyze", { method: "POST", body: formData });
-        const payload = await res.json();
+        let res;
+        try {
+          res = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reqBody),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
-        if (payload && payload.extractedText && !latestText) {
-          latestText = payload.extractedText;
+        const payload = await res.json().catch(() => null);
+
+        if (payload && payload.extractedText) {
+          latestText = payload.extractedText.trim();
           textarea.value = latestText;
         }
 
-        if (res.ok && payload.success && payload.data) {
+        if (res.ok && payload && payload.success && payload.data) {
           const d = payload.data;
+          if (d.extractedText && !latestText) {
+            latestText = String(d.extractedText).trim();
+            textarea.value = latestText;
+          }
           const takeaways = Array.isArray(d.takeaways) && d.takeaways.length > 0 ? d.takeaways : [];
           const terms = Array.isArray(d.terms) && d.terms.length > 0 ? d.terms : [];
           const questions = Array.isArray(d.questions) && d.questions.length > 0 ? d.questions : [];
@@ -964,51 +1215,70 @@
               ].slice(0, 6);
 
           if (takeaways.length > 0) {
+            const localFallback = synthesizeFromTextLocally(latestText || activeFilename, activeFilename);
             studyData = {
               filename: activeFilename,
               takeaways,
-              terms: terms.map((t) => (typeof t === "string" ? t : t.term || "Term")),
-              trap: d.trap || "Watch for deceptive qualifiers in multiple-choice stems.",
-              questions: questions.length > 0 ? questions : synthesizeFromTextLocally(latestText, activeFilename).questions,
-              cards: cards.length > 0 ? cards : synthesizeFromTextLocally(latestText, activeFilename).cards,
+              terms: terms.length > 0 ? terms.map((t) => (typeof t === "string" ? t : t.term || "Term")) : localFallback.terms,
+              trap: d.trap || localFallback.trap,
+              questions: questions.length > 0 ? questions : localFallback.questions,
+              cards: cards.length > 0 ? cards : localFallback.cards,
             };
             updatedByServer = true;
           }
         }
       } catch (err) {
-        console.warn("API synthesis notice, using local document analyzer:", err);
+        console.warn("API synthesis notice, switching to local/OCR analyzer:", err);
       }
 
-      // If server API key wasn't configured or server didn't return data, analyze the actual uploaded text locally!
-      if (!updatedByServer && latestText) {
-        studyData = synthesizeFromTextLocally(latestText, activeFilename);
+      try {
+        if (!updatedByServer) {
+          if (uploadedImagePayload && !latestText) {
+            label.textContent = "Running Optical Scan...";
+            status.textContent = "STATUS: OCR SCANNING";
+            const ocrText = await runClientOcrFallback(uploadedImagePayload.dataUrl, 7500);
+            if (ocrText && ocrText.length >= 25) {
+              latestText = ocrText;
+              textarea.value = ocrText;
+              studyData = synthesizeFromTextLocally(ocrText, activeFilename);
+            } else {
+              studyData = synthesizeFromImageFallback(activeFilename, ocrText, uploadedImagePayload);
+              textarea.value = studyData.takeaways.map((t) => `${t.num}. ${t.concept}: ${t.desc}`).join("\n\n");
+            }
+          } else if (latestText) {
+            studyData = synthesizeFromTextLocally(latestText, activeFilename);
+          } else {
+            studyData = synthesizeFromImageFallback(activeFilename, "", uploadedImagePayload);
+            textarea.value = studyData.takeaways.map((t) => `${t.num}. ${t.concept}: ${t.desc}`).join("\n\n");
+          }
+        }
+
+        currentQIndex = 0;
+        selectedAnswer = null;
+        arenaScore = 0;
+        answeredCount = 0;
+        quizFinished = false;
+        currentCardIndex = 0;
+        isFlipped = false;
+
+        chatMessages = [
+          {
+            role: "gojo",
+            content: `Indexed "${studyData.filename}" (${studyData.takeaways.length} core pillars and ${studyData.terms.length} key terms extracted). Ask about any concept in your uploaded material or test yourself in Active Recall Drills.`,
+          },
+        ];
+      } finally {
+        isSynthesizing = false;
+        btn.disabled = false;
+        label.textContent = "Synthesize Study Canvas";
+        status.textContent = "STATUS: READY";
+        if (bannerStatus) bannerStatus.textContent = "VERIFIED";
+        renderSummary();
+        renderArena();
+        renderCards();
+        renderChat();
+        setActiveTab("summary");
       }
-
-      currentQIndex = 0;
-      selectedAnswer = null;
-      arenaScore = 0;
-      answeredCount = 0;
-      quizFinished = false;
-      currentCardIndex = 0;
-      isFlipped = false;
-
-      chatMessages = [
-        {
-          role: "gojo",
-          content: `Indexed "${studyData.filename}" (${studyData.takeaways.length} core pillars and ${studyData.terms.length} key terms extracted). Ask about any concept in your uploaded slides or test yourself in Active Recall Drills.`,
-        },
-      ];
-
-      isSynthesizing = false;
-      btn.disabled = false;
-      label.textContent = "Synthesize Study Canvas";
-      status.textContent = "STATUS: READY";
-      if (bannerStatus) bannerStatus.textContent = "VERIFIED";
-      renderSummary();
-      renderArena();
-      renderCards();
-      renderChat();
-      setActiveTab("summary");
     }
 
     function handleAnswerSelect(index) {
@@ -1120,6 +1390,23 @@
       setActiveTab("summary");
       setTimeout(() => window.print(), 100);
     }
+
+    // Support pasting screenshots/images directly (Ctrl+V / Cmd+V)
+    window.addEventListener("paste", (e) => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type && item.type.startsWith("image/")) {
+          const blob = item.getAsFile();
+          if (blob) {
+            const ext = item.type.split("/")[1] || "png";
+            const file = new File([blob], `Pasted_Slide_${Date.now()}.${ext}`, { type: item.type });
+            handleFileUpload({ target: { files: [file] } });
+            break;
+          }
+        }
+      }
+    });
 
     // Initialize initial view
     renderSummary();

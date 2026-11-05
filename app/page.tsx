@@ -263,48 +263,124 @@ export default function AcademicWorkspace() {
   };
 
   // --- HANDLERS ---
+  const compressImageFileToBase64 = (file: File, maxDim = 1400, quality = 0.82): Promise<{ base64: string; mimeType: string; dataUrl: string }> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Could not read image"));
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        const img = new Image();
+        img.onerror = () =>
+          resolve({
+            base64: dataUrl.replace(/^data:[^;]+;base64,/, ""),
+            mimeType: file.type || "image/jpeg",
+            dataUrl,
+          });
+        img.onload = () => {
+          let w = img.naturalWidth || img.width || 800;
+          let h = img.naturalHeight || img.height || 600;
+          if (w > maxDim || h > maxDim) {
+            if (w >= h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+          }
+          const outUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve({
+            base64: outUrl.replace(/^data:[^;]+;base64,/, ""),
+            mimeType: "image/jpeg",
+            dataUrl: outUrl,
+          });
+        };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadedFile(file);
     setStudyData((prev) => ({ ...prev, filename: file.name }));
+    const isImg = file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name);
     if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt") || file.name.toLowerCase().endsWith(".md")) {
       const text = await file.text();
       setSourceText(text);
+      await runSynthesis(file, text);
+    } else if (isImg) {
+      setSourceText(`[Uploaded Image: ${file.name}] — Synthesizing slide/image...`);
+      await runSynthesis(file, "");
     } else {
       setSourceText(`[Uploaded PDF: ${file.name}] — Synthesizing document...`);
+      await runSynthesis(file, "");
     }
   };
 
-  const handleSynthesize = async () => {
-    if (!sourceText.trim() && !uploadedFile) {
-      alert("Please enter notes or upload a document first.");
+  const runSynthesis = async (fileToUse: File | null, textToUse: string) => {
+    const cleanText = /^\[(Uploaded PDF|Uploaded Image):/i.test(textToUse.trim()) ? "" : textToUse.trim();
+    if (!cleanText && !fileToUse) {
+      alert("Please enter notes, upload a PDF, or upload an image first.");
       return;
     }
     setIsSynthesizing(true);
-    const activeFilename = uploadedFile ? uploadedFile.name : "Custom_Study_Notes.txt";
+    const activeFilename = fileToUse ? fileToUse.name : "Custom_Study_Notes.txt";
 
     try {
-      const formData = new FormData();
-      if (uploadedFile) {
-        formData.append("file", uploadedFile);
-      }
-      if (sourceText.trim() && !sourceText.startsWith("[Uploaded PDF:")) {
-        formData.append("text", sourceText.trim());
-      }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 13500);
+      let response: Response;
 
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        body: formData,
-      });
-      const result = await response.json();
-
-      if (response.ok && result.success && result.data) {
-        const apiData = result.data;
-        if (result.extractedText) {
-          setSourceText(result.extractedText);
+      try {
+        const isImg = fileToUse && (fileToUse.type.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp)$/i.test(fileToUse.name));
+        if (isImg && fileToUse) {
+          const compressed = await compressImageFileToBase64(fileToUse);
+          response = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename: activeFilename,
+              text: cleanText,
+              imageBase64: compressed.base64,
+              imageMimeType: compressed.mimeType,
+            }),
+            signal: controller.signal,
+          });
+        } else {
+          const formData = new FormData();
+          if (fileToUse) formData.append("file", fileToUse);
+          if (cleanText) formData.append("text", cleanText);
+          response = await fetch("/api/analyze", {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
+          });
         }
-        const fallback = synthesizeFromTextLocally(result.extractedText || sourceText, activeFilename);
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      const result = await response.json().catch(() => null);
+
+      if (response.ok && result && result.success && result.data) {
+        const apiData = result.data;
+        const resolvedText = result.extractedText || apiData.extractedText || cleanText || activeFilename;
+        if (result.extractedText || apiData.extractedText) {
+          setSourceText(result.extractedText || apiData.extractedText);
+        }
+        const fallback = synthesizeFromTextLocally(resolvedText, activeFilename);
         setStudyData({
           filename: activeFilename,
           takeaways: Array.isArray(apiData.takeaways) && apiData.takeaways.length ? apiData.takeaways : fallback.takeaways,
@@ -314,7 +390,7 @@ export default function AcademicWorkspace() {
           cards: Array.isArray(apiData.cards) && apiData.cards.length ? apiData.cards : fallback.cards,
         });
       } else {
-        const localData = synthesizeFromTextLocally(sourceText, activeFilename);
+        const localData = synthesizeFromTextLocally(cleanText || `Visual Study Material: ${activeFilename}. Analyze key diagrams, labels, and core mechanisms.`, activeFilename);
         setStudyData(localData);
       }
       setCurrentQIndex(0);
@@ -326,12 +402,16 @@ export default function AcademicWorkspace() {
       setIsFlipped(false);
       setActiveTab("summary");
     } catch {
-      const localData = synthesizeFromTextLocally(sourceText, activeFilename);
+      const localData = synthesizeFromTextLocally(cleanText || `Visual Study Material: ${activeFilename}. Analyze key diagrams, labels, and core mechanisms.`, activeFilename);
       setStudyData(localData);
       setActiveTab("summary");
     } finally {
       setIsSynthesizing(false);
     }
+  };
+
+  const handleSynthesize = async () => {
+    await runSynthesis(uploadedFile, sourceText);
   };
 
   const handleAnswerSelect = (index: number) => {
@@ -443,13 +523,13 @@ export default function AcademicWorkspace() {
           <div className="p-4 border-b border-[#E2E8F0] bg-[#E4F1FF]/40">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-mono uppercase tracking-wider text-[#0F3470] font-bold">Source Material</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0F3470] text-white font-semibold">PDF / Plain Text</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0F3470] text-white font-semibold">PDF / Image / Text</span>
             </div>
 
             <div className="relative border border-dashed border-[#0F3470]/40 hover:border-[#0F3470] rounded-lg p-4 text-center bg-white cursor-pointer transition-colors">
               <input
                 type="file"
-                accept=".pdf,.txt"
+                accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.txt,.md,.csv,image/*,application/pdf,text/plain"
                 className="absolute inset-0 opacity-0 cursor-pointer z-10"
                 onChange={handleFileUpload}
               />
@@ -457,8 +537,8 @@ export default function AcademicWorkspace() {
                 <svg className="w-5 h-5 text-[#0F3470] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <span className="font-semibold">Upload lecture document</span>
-                <span className="text-[10px] text-[#64748B] font-mono">Drag &amp; drop PDF or syllabus</span>
+                <span className="font-semibold">Upload lecture document or image</span>
+                <span className="text-[10px] text-[#64748B] font-mono">PDF, PNG, JPG, Slide Photo, or Text</span>
               </div>
             </div>
           </div>

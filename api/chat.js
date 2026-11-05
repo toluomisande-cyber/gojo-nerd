@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const CANDIDATE_MODELS = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3-flash-preview'];
+const CANDIDATE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
 
 async function executeWithModelFallback(genAI, config, operation) {
   let lastError = null;
