@@ -43,71 +43,14 @@ export interface StudentProfile {
   email: string;
   pin: string;
   major: string;
-  institution: string;
-  avatarColor: string;
   avatarInitials: string;
   stats: {
-    streak: number;
     drillsAttempted: number;
     drillsMastered: number;
     cardsMastered: number;
     decksAnalyzed: number;
   };
 }
-
-export const DEFAULT_STUDENTS: StudentProfile[] = [
-  {
-    id: "GOJO-2027-4819",
-    name: "Alex Chen",
-    email: "alex.chen@harvard.edu",
-    pin: "1234",
-    major: "Bioengineering '27",
-    institution: "Harvard University",
-    avatarColor: "#0F3470",
-    avatarInitials: "AC",
-    stats: {
-      streak: 5,
-      drillsAttempted: 25,
-      drillsMastered: 22,
-      cardsMastered: 24,
-      decksAnalyzed: 3,
-    },
-  },
-  {
-    id: "GOJO-2026-1104",
-    name: "Maya Lin",
-    email: "maya.lin@stanford.edu",
-    pin: "1234",
-    major: "Cognitive Neuroscience '26",
-    institution: "Stanford University",
-    avatarColor: "#7C3AED",
-    avatarInitials: "ML",
-    stats: {
-      streak: 12,
-      drillsAttempted: 40,
-      drillsMastered: 38,
-      cardsMastered: 42,
-      decksAnalyzed: 6,
-    },
-  },
-  {
-    id: "GOJO-2028-3921",
-    name: "Marcus Vance",
-    email: "marcus.vance@mit.edu",
-    pin: "1234",
-    major: "AI & Quantitative Biology '28",
-    institution: "MIT",
-    avatarColor: "#0D9488",
-    avatarInitials: "MV",
-    stats: {
-      streak: 3,
-      drillsAttempted: 18,
-      drillsMastered: 15,
-      cardsMastered: 18,
-      decksAnalyzed: 2,
-    },
-  },
-];
 
 // --- SAMPLE DATASET ---
 const initialPayload: StudyPayload = {
@@ -285,11 +228,11 @@ export default function AcademicWorkspace() {
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
 
   // Student Personal Profiles & Authentication State
-  const [students, setStudents] = useState<StudentProfile[]>(DEFAULT_STUDENTS);
+  const [students, setStudents] = useState<StudentProfile[]>([]);
   const [currentStudent, setCurrentStudent] = useState<StudentProfile | null>(null);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(true);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
-  const [authTab, setAuthTab] = useState<"quick" | "login" | "enroll">("quick");
+  const [authTab, setAuthTab] = useState<"login" | "enroll">("login");
 
   // Sign In inputs
   const [loginIdentifier, setLoginIdentifier] = useState<string>("");
@@ -299,45 +242,70 @@ export default function AcademicWorkspace() {
   // Enrollment inputs
   const [enrollName, setEnrollName] = useState<string>("");
   const [enrollMajor, setEnrollMajor] = useState<string>("");
-  const [enrollInstitution, setEnrollInstitution] = useState<string>("");
   const [enrollEmail, setEnrollEmail] = useState<string>("");
   const [enrollPin, setEnrollPin] = useState<string>("");
   const [enrollError, setEnrollError] = useState<string>("");
 
+  const loadStudentDesk = (student: StudentProfile) => {
+    try {
+      const savedStudy = localStorage.getItem(`gojo_desk_study_${student.id}`);
+      if (savedStudy) {
+        const parsed = JSON.parse(savedStudy);
+        if (parsed && parsed.filename && Array.isArray(parsed.takeaways)) {
+          setStudyData(parsed);
+        }
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const raw = localStorage.getItem("gojo_students_v1");
-      let list = DEFAULT_STUDENTS;
+      const raw = localStorage.getItem("gojo_student_records_v2");
+      let list: StudentProfile[] = [];
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
-      } else {
-        localStorage.setItem("gojo_students_v1", JSON.stringify(DEFAULT_STUDENTS));
+        if (Array.isArray(parsed)) list = parsed;
       }
       setStudents(list);
-
-      const savedId = localStorage.getItem("gojo_current_student_id_v1");
-      const isGuest = sessionStorage.getItem("gojo_guest_session") === "true";
-      if (savedId) {
-        const found = list.find((s) => s.id === savedId);
-        if (found) setCurrentStudent(found);
-      } else if (!isGuest && list.length > 0) {
-        setCurrentStudent(list[0]);
-        localStorage.setItem("gojo_current_student_id_v1", list[0].id);
+      if (list.length === 0) {
+        setAuthTab("enroll");
+      } else {
+        setAuthTab("login");
       }
+
+      const activeSessionId = sessionStorage.getItem("gojo_active_student_id");
+      const isGuest = sessionStorage.getItem("gojo_guest_session") === "true";
+      if (activeSessionId) {
+        const found = list.find((s) => s.id === activeSessionId);
+        if (found) {
+          setCurrentStudent(found);
+          loadStudentDesk(found);
+          setIsLoginModalOpen(false);
+          return;
+        }
+      }
+      if (isGuest) {
+        setIsLoginModalOpen(false);
+        return;
+      }
+      setIsLoginModalOpen(true);
     } catch (e) {
-      console.warn("Failed to load student session", e);
+      setIsLoginModalOpen(true);
     }
   }, []);
 
-  const saveStudent = (updated: StudentProfile) => {
+  const saveStudent = (updated: StudentProfile, nextStudyData?: StudyPayload) => {
     setCurrentStudent(updated);
     setStudents((prev) => {
-      const next = prev.map((s) => (s.id === updated.id ? updated : s));
+      const exists = prev.some((s) => s.id === updated.id);
+      const next = exists ? prev.map((s) => (s.id === updated.id ? updated : s)) : [updated, ...prev];
       try {
-        localStorage.setItem("gojo_students_v1", JSON.stringify(next));
-        localStorage.setItem("gojo_current_student_id_v1", updated.id);
+        localStorage.setItem("gojo_student_records_v2", JSON.stringify(next));
+        sessionStorage.setItem("gojo_active_student_id", updated.id);
+        if (nextStudyData || studyData) {
+          localStorage.setItem(`gojo_desk_study_${updated.id}`, JSON.stringify(nextStudyData || studyData));
+        }
       } catch (e) {}
       return next;
     });
@@ -347,8 +315,9 @@ export default function AcademicWorkspace() {
     const found = students.find((s) => s.id === studentId);
     if (found) {
       setCurrentStudent(found);
+      loadStudentDesk(found);
       try {
-        localStorage.setItem("gojo_current_student_id_v1", found.id);
+        sessionStorage.setItem("gojo_active_student_id", found.id);
         sessionStorage.removeItem("gojo_guest_session");
       } catch (e) {}
       setIsLoginModalOpen(false);
@@ -359,48 +328,51 @@ export default function AcademicWorkspace() {
     e.preventDefault();
     const idClean = loginIdentifier.trim().toLowerCase();
     const pinClean = loginPin.trim();
+    if (students.length === 0) {
+      setLoginError("No student accounts exist on this device yet. Create your student desk first.");
+      return;
+    }
     const matched = students.find(
       (s) =>
-        (s.id.toLowerCase() === idClean || s.email.toLowerCase() === idClean) &&
-        (!s.pin || s.pin === pinClean || pinClean === "1234")
+        (s.id.toLowerCase() === idClean ||
+          s.email.toLowerCase() === idClean ||
+          s.name.toLowerCase() === idClean) &&
+        (!s.pin || s.pin === pinClean)
     );
     if (matched) {
       setLoginError("");
       setCurrentStudent(matched);
+      loadStudentDesk(matched);
       try {
-        localStorage.setItem("gojo_current_student_id_v1", matched.id);
+        sessionStorage.setItem("gojo_active_student_id", matched.id);
         sessionStorage.removeItem("gojo_guest_session");
       } catch (err) {}
       setIsLoginModalOpen(false);
     } else {
-      setLoginError("Invalid Student ID / Email or PIN. (Demo PIN: 1234 or use 1-Click Profiles)");
+      setLoginError("Account or passcode not recognized. Check your email or create a new desk.");
     }
   };
 
   const handleEnroll = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!enrollName || !enrollMajor || !enrollInstitution || !enrollEmail) return;
+    if (!enrollName.trim() || !enrollMajor.trim() || !enrollEmail.trim() || !enrollPin.trim()) return;
     const initials = enrollName
+      .trim()
       .split(/\s+/)
       .map((p) => p[0])
       .join("")
       .substring(0, 2)
       .toUpperCase();
-    const colors = ["#0F3470", "#1E40AF", "#0369A1", "#0D9488", "#7C3AED", "#B91C1C"];
-    const avatarColor = colors[Math.floor(Math.random() * colors.length)];
-    const studentId = `GOJO-2027-${Math.floor(1000 + Math.random() * 9000)}`;
+    const studentId = `STD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newStudent: StudentProfile = {
       id: studentId,
       name: enrollName.trim(),
       email: enrollEmail.trim(),
-      pin: enrollPin.trim() || "1234",
+      pin: enrollPin.trim(),
       major: enrollMajor.trim(),
-      institution: enrollInstitution.trim(),
-      avatarColor,
       avatarInitials: initials,
       stats: {
-        streak: 1,
         drillsAttempted: 0,
         drillsMastered: 0,
         cardsMastered: 0,
@@ -412,18 +384,23 @@ export default function AcademicWorkspace() {
     setStudents(nextList);
     setCurrentStudent(newStudent);
     try {
-      localStorage.setItem("gojo_students_v1", JSON.stringify(nextList));
-      localStorage.setItem("gojo_current_student_id_v1", newStudent.id);
+      localStorage.setItem("gojo_student_records_v2", JSON.stringify(nextList));
+      localStorage.setItem(`gojo_desk_study_${newStudent.id}`, JSON.stringify(studyData));
+      sessionStorage.setItem("gojo_active_student_id", newStudent.id);
       sessionStorage.removeItem("gojo_guest_session");
     } catch (e) {}
+    setEnrollName("");
+    setEnrollMajor("");
+    setEnrollEmail("");
+    setEnrollPin("");
     setIsLoginModalOpen(false);
   };
 
   const handleSignOut = () => {
     setCurrentStudent(null);
     try {
-      localStorage.removeItem("gojo_current_student_id_v1");
-      sessionStorage.setItem("gojo_guest_session", "true");
+      sessionStorage.removeItem("gojo_active_student_id");
+      sessionStorage.removeItem("gojo_guest_session");
     } catch (e) {}
     setIsProfileModalOpen(false);
     setIsLoginModalOpen(true);
@@ -432,7 +409,7 @@ export default function AcademicWorkspace() {
   const continueAsGuest = () => {
     try {
       sessionStorage.setItem("gojo_guest_session", "true");
-      localStorage.removeItem("gojo_current_student_id_v1");
+      sessionStorage.removeItem("gojo_active_student_id");
     } catch (e) {}
     setCurrentStudent(null);
     setIsLoginModalOpen(false);
@@ -954,37 +931,28 @@ export default function AcademicWorkspace() {
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="flex items-center gap-1.5 sm:gap-2 px-2 py-1 sm:px-2.5 sm:py-1 rounded-full border border-[#0F3470]/30 bg-white hover:bg-[#E4F1FF]/70 text-[#0F3470] transition-all shadow-2xs"
-              title="Open Student ID & Academic Record"
+              className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-[#111827]/[0.1] bg-white hover:bg-[#F5F7FA] text-[#111827] transition-colors"
+              title="Open student record"
             >
-              <div
-                className="w-6 h-6 rounded-full text-white font-mono text-[10px] font-bold flex items-center justify-center shrink-0 shadow-2xs"
-                style={{ backgroundColor: currentStudent.avatarColor || "#0F3470" }}
-              >
+              <div className="w-6 h-6 rounded-md bg-[#0F3470] text-white font-mono text-[11px] font-medium flex items-center justify-center shrink-0">
                 {currentStudent.avatarInitials}
               </div>
               <div className="text-left hidden sm:block leading-tight min-w-0">
-                <div className="font-bold text-[11px] truncate max-w-[90px] md:max-w-[120px] text-[#0F3470]">
+                <div className="font-medium text-xs truncate max-w-[110px] text-[#111827]">
                   {currentStudent.name}
                 </div>
-                <div className="text-[9px] text-[#64748B] font-mono truncate max-w-[90px] md:max-w-[120px]">
+                <div className="text-[11px] text-[#6B7487] truncate max-w-[110px]">
                   {currentStudent.major}
                 </div>
               </div>
-              <svg className="w-3 h-3 text-[#64748B] hidden sm:block shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setIsLoginModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-[#0F3470] bg-[#0F3470] text-white hover:bg-[#16438c] transition-all font-mono text-[11px] font-semibold shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#111827]/[0.12] bg-white hover:bg-[#F5F7FA] text-[#111827] transition-colors text-xs font-medium"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>Student Sign In</span>
+              <span>Sign in</span>
             </button>
           )}
         </div>
@@ -1092,53 +1060,6 @@ export default function AcademicWorkspace() {
             {activeTab === "summary" && (
               <div className="max-w-3xl space-y-6">
                 
-                {/* Student Personal Greeting Banner */}
-                {currentStudent && (
-                  <div className="bg-gradient-to-r from-[#E4F1FF]/90 via-[#E4F1FF]/50 to-white border border-[#C5DFFF] rounded-xl p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white font-mono text-xs sm:text-sm font-bold flex items-center justify-center shrink-0 ring-2 ring-white shadow-xs"
-                        style={{ backgroundColor: currentStudent.avatarColor || "#0F3470" }}
-                      >
-                        {currentStudent.avatarInitials}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs sm:text-sm font-bold text-[#0F3470] font-sans">
-                            Welcome back, {currentStudent.name}
-                          </span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#0F3470]/10 text-[#0F3470] border border-[#0F3470]/20">
-                            ENROLLED STUDENT
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-[#64748B] flex items-center gap-2 mt-0.5 font-mono truncate">
-                          <span>{currentStudent.major}</span>
-                          <span>•</span>
-                          <span className="text-amber-700 font-semibold flex items-center gap-1">
-                            <span>🔥</span><span>{currentStudent.stats?.streak || 1} Day Streak</span>
-                          </span>
-                          <span className="hidden md:inline">•</span>
-                          <span className="hidden md:inline text-emerald-700 font-semibold">
-                            {Math.round(((currentStudent.stats?.drillsMastered || 0) / (currentStudent.stats?.drillsAttempted || 1)) * 100)}% Recall Accuracy
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                      <button
-                        type="button"
-                        onClick={() => setIsProfileModalOpen(true)}
-                        className="px-2.5 py-1.5 rounded border border-[#0F3470]/30 bg-white hover:bg-[#E4F1FF] text-[#0F3470] font-mono text-[11px] font-semibold transition-colors flex items-center gap-1.5 shadow-2xs"
-                      >
-                        <svg className="w-3.5 h-3.5 text-[#0F3470]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                        </svg>
-                        <span>Student ID Card</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
                 {/* Deep Navy Header Card (#0F3470) */}
                 <div className="bg-[#0F3470] text-white rounded-lg p-5 shadow-sm flex items-center justify-between border-l-4 border-[#0F3470]">
                   <div>
@@ -1687,490 +1608,421 @@ export default function AcademicWorkspace() {
         })}
       </nav>
 
-      {/* STUDENT LOGIN / REGISTRATION MODAL GATE */}
+      {/* FIRST-SCREEN STUDENT DESK LOGIN GATE (UNSLOPPED) */}
       {isLoginModalOpen && (
-        <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          onClick={() => setIsLoginModalOpen(false)}
-        >
-          <div
-            className="bg-white rounded-2xl border border-[#CBD5E1] shadow-2xl w-full max-w-lg overflow-hidden my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="bg-[#0F3470] text-white p-5 sm:p-6 relative overflow-hidden">
-              <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span className="text-[10px] font-mono tracking-widest text-[#E4F1FF] uppercase font-semibold">
-                    GØJØ ACADEMIC PORTAL
-                  </span>
+        <div className="fixed inset-0 z-[100] bg-[#F5F7FA] text-[#111827] flex flex-col lg:grid lg:grid-cols-12 overflow-y-auto">
+          {/* Left Column: Student Authentication (5 cols on desktop) */}
+          <div className="lg:col-span-5 bg-white border-b lg:border-b-0 lg:border-r border-[#111827]/[0.08] flex flex-col justify-between p-6 sm:p-10 lg:p-12 min-h-[100dvh] lg:min-h-0">
+            {/* Top Brand Row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                  <svg viewBox="0 0 100 100" className="w-full h-full">
+                    <circle cx="38" cy="50" r="23" fill="none" stroke="#0F3470" strokeWidth="5" />
+                    <circle cx="62" cy="50" r="23" fill="none" stroke="#DC2626" strokeWidth="5" />
+                    <circle cx="50" cy="50" r="6" fill="#0F3470" />
+                  </svg>
                 </div>
+                <span className="font-serif font-semibold text-base tracking-[-0.02em] text-[#111827]">
+                  GØJØ.nerd
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={continueAsGuest}
+                className="text-xs text-[#6B7487] hover:text-[#111827] transition-colors py-1 px-2 rounded-md hover:bg-[#ECEFF4]"
+              >
+                Continue without saving
+              </button>
+            </div>
+
+            {/* Center Form Block */}
+            <div className="my-auto py-8 max-w-sm w-full mx-auto">
+              <h1 className="font-serif text-2xl sm:text-[28px] font-semibold text-[#111827] tracking-[-0.025em] leading-[1.15]">
+                {authTab === "login" ? "Sign in to your study desk" : "Create your student desk"}
+              </h1>
+              <p className="text-sm text-[#4B5565] mt-2 leading-[1.5]">
+                {authTab === "login"
+                  ? "Your uploaded syllabi, active recall accuracy, and flashcards stay attached to your student record."
+                  : "Register your name and course to keep your syllabi and recall progress separate from other students."}
+              </p>
+
+              {/* Mode Switch (Nested radius: outer 10px, padding 4px, inner 6px) */}
+              <div className="mt-6 p-1 rounded-[10px] bg-[#ECEFF4] border border-[#111827]/[0.06] grid grid-cols-2 gap-1 text-xs">
                 <button
                   type="button"
-                  onClick={() => setIsLoginModalOpen(false)}
-                  className="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                  onClick={() => setAuthTab("login")}
+                  className={
+                    authTab === "login"
+                      ? "py-2 px-3 rounded-[6px] font-medium bg-white text-[#111827] shadow-2xs transition-colors"
+                      : "py-2 px-3 rounded-[6px] font-medium text-[#4B5565] hover:text-[#111827] transition-colors"
+                  }
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  Sign in
                 </button>
-              </div>
-
-              <h3 className="text-xl sm:text-2xl font-serif font-bold text-white tracking-tight">
-                Student Access &amp; Workspace
-              </h3>
-              <p className="text-xs text-white/80 mt-1 font-sans">
-                Log in with your academic student ID to track mastery, streaks, and personal recall drills.
-              </p>
-            </div>
-
-            {/* Auth Tabs */}
-            <div className="flex border-b border-[#E2E8F0] bg-slate-50 text-xs font-mono">
-              <button
-                type="button"
-                onClick={() => setAuthTab("quick")}
-                className={`flex-1 py-3 px-2 text-center transition-all ${
-                  authTab === "quick"
-                    ? "font-bold text-[#0F3470] border-b-2 border-[#0F3470] bg-white"
-                    : "font-medium text-[#64748B] hover:text-[#0F3470]"
-                }`}
-              >
-                Quick Profiles
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthTab("login")}
-                className={`flex-1 py-3 px-2 text-center transition-all ${
-                  authTab === "login"
-                    ? "font-bold text-[#0F3470] border-b-2 border-[#0F3470] bg-white"
-                    : "font-medium text-[#64748B] hover:text-[#0F3470]"
-                }`}
-              >
-                Student Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthTab("enroll")}
-                className={`flex-1 py-3 px-2 text-center transition-all ${
-                  authTab === "enroll"
-                    ? "font-bold text-[#0F3470] border-b-2 border-[#0F3470] bg-white"
-                    : "font-medium text-[#64748B] hover:text-[#0F3470]"
-                }`}
-              >
-                New Student
-              </button>
-            </div>
-
-            {/* Tab 1: Quick Profiles */}
-            {authTab === "quick" && (
-              <div className="p-5 sm:p-6 space-y-4">
-                <div className="text-xs text-[#64748B]">
-                  Select an enrolled student profile to instantly load their personal syllabus notes, active recall accuracy, and study streak:
-                </div>
-
-                <div className="space-y-2.5">
-                  {students.map((student) => {
-                    const isCurrent = currentStudent?.id === student.id;
-                    const accuracy = Math.round(
-                      ((student.stats?.drillsMastered || 0) / (student.stats?.drillsAttempted || 1)) * 100
-                    );
-                    return (
-                      <div
-                        key={student.id}
-                        onClick={() => handleSelectStudent(student.id)}
-                        className={`group p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isCurrent
-                            ? "border-[#0F3470] bg-[#E4F1FF]/50 ring-1 ring-[#0F3470]"
-                            : "border-[#E2E8F0] hover:border-[#0F3470]/40 hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className="w-10 h-10 rounded-full text-white font-mono text-xs font-bold flex items-center justify-center shrink-0 shadow-2xs"
-                            style={{ backgroundColor: student.avatarColor || "#0F3470" }}
-                          >
-                            {student.avatarInitials}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs sm:text-sm font-bold text-[#0F3470] truncate">{student.name}</span>
-                              {isCurrent && (
-                                <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold">
-                                  CURRENT
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-[#64748B] font-mono truncate">
-                              {student.major} · {student.institution}
-                            </div>
-                            <div className="text-[10px] text-[#64748B] font-mono flex items-center gap-2 mt-0.5">
-                              <span>🔥 {student.stats?.streak || 1}d</span>
-                              <span>•</span>
-                              <span className="text-emerald-700 font-semibold">{accuracy}% acc</span>
-                              <span>•</span>
-                              <span>{student.stats?.cardsMastered || 0} cards</span>
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className={`px-2.5 py-1.5 rounded-lg font-mono text-[11px] font-semibold transition-colors shrink-0 ${
-                            isCurrent
-                              ? "bg-[#0F3470] text-white"
-                              : "bg-white border border-[#CBD5E1] text-[#0F3470] group-hover:bg-[#0F3470] group-hover:text-white"
-                          }`}
-                        >
-                          {isCurrent ? "Active" : "Select"}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setAuthTab("enroll")}
-                    className="text-[#0F3470] hover:underline font-mono font-semibold"
-                  >
-                    + Enroll as a New Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={continueAsGuest}
-                    className="text-[#64748B] hover:text-[#0F3470] font-mono"
-                  >
-                    Continue as Guest →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 2: Sign In */}
-            {authTab === "login" && (
-              <form onSubmit={handleSignIn} className="p-5 sm:p-6 space-y-4">
-                {loginError && (
-                  <div className="p-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-xs font-mono">
-                    {loginError}
-                  </div>
-                )}
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-[#0F3470] mb-1">
-                    Student ID or Academic Email
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={loginIdentifier}
-                    onChange={(e) => setLoginIdentifier(e.target.value)}
-                    placeholder="e.g. GOJO-2027-4819 or alex.chen@harvard.edu"
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F3470]/30 focus:border-[#0F3470] font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-[#0F3470] mb-1">
-                    Access PIN / Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={loginPin}
-                    onChange={(e) => setLoginPin(e.target.value)}
-                    placeholder="••••"
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F3470]/30 focus:border-[#0F3470] font-mono"
-                  />
-                  <div className="flex justify-between items-center mt-1 text-[11px] text-[#64748B]">
-                    <span>Demo PIN: <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-[#0F3470]">1234</code></span>
-                    <button type="button" onClick={() => setAuthTab("quick")} className="text-[#0F3470] hover:underline font-mono">
-                      1-Click Profiles
-                    </button>
-                  </div>
-                </div>
                 <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 rounded-lg bg-[#0F3470] hover:bg-[#16438c] text-white font-mono text-xs sm:text-sm font-bold tracking-wide transition-colors shadow-sm"
+                  type="button"
+                  onClick={() => setAuthTab("enroll")}
+                  className={
+                    authTab === "enroll"
+                      ? "py-2 px-3 rounded-[6px] font-medium bg-white text-[#111827] shadow-2xs transition-colors"
+                      : "py-2 px-3 rounded-[6px] font-medium text-[#4B5565] hover:text-[#111827] transition-colors"
+                  }
                 >
-                  Sign In to Student Desk
+                  Create account
                 </button>
-                <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
-                  <span className="text-[#64748B]">No account yet?</span>
-                  <button
-                    type="button"
-                    onClick={() => setAuthTab("enroll")}
-                    className="text-[#0F3470] hover:underline font-mono font-semibold"
-                  >
-                    Enroll New Student
-                  </button>
-                </div>
-              </form>
-            )}
+              </div>
 
-            {/* Tab 3: Enroll */}
-            {authTab === "enroll" && (
-              <form onSubmit={handleEnroll} className="p-5 sm:p-6 space-y-3.5">
-                {enrollError && (
-                  <div className="p-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-xs font-mono">
-                    {enrollError}
-                  </div>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* View 1: Sign In */}
+              {authTab === "login" && (
+                <div className="mt-6 space-y-5">
+                  {students.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-[#4B5565]">Saved on this device</span>
+                        <span className="text-[11px] font-mono text-[#6B7487] tabular-nums">
+                          {students.length === 1 ? "1 account" : `${students.length} accounts`}
+                        </span>
+                      </div>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {students.map((student) => {
+                          const attempted = student.stats?.drillsAttempted || 0;
+                          const mastered = student.stats?.drillsMastered || 0;
+                          const accuracyText =
+                            attempted > 0 ? `${Math.round((mastered / attempted) * 100)}% recall` : "No drills yet";
+                          return (
+                            <button
+                              key={student.id}
+                              type="button"
+                              onClick={() => handleSelectStudent(student.id)}
+                              className="w-full text-left p-3 rounded-lg border border-[#111827]/[0.08] hover:border-[#0F3470] bg-white hover:bg-[#F5F7FA] transition-colors flex items-center justify-between gap-3"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-md bg-[#ECEFF4] text-[#111827] font-mono text-xs font-medium flex items-center justify-center shrink-0 border border-[#111827]/[0.08]">
+                                  {student.avatarInitials}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-medium text-[#111827] truncate">{student.name}</div>
+                                  <div className="text-[11px] text-[#6B7487] truncate">{student.major}</div>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-[11px] font-mono text-[#4B5565] tabular-nums">{accuracyText}</div>
+                                <div className="text-[11px] text-[#0F3470] font-medium">Open &rarr;</div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="relative my-5">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-[#111827]/[0.08]" />
+                        </div>
+                        <div className="relative flex justify-center">
+                          <span className="bg-white px-2 text-xs text-[#6B7487]">Or enter credentials</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    {loginError && (
+                      <div className="p-3 rounded-lg bg-[#FEF2F2] border border-[#B91C1C]/20 text-[#B91C1C] text-xs">
+                        {loginError}
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-medium text-[#111827] mb-1.5">
+                        Academic email or student ID
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={loginIdentifier}
+                        onChange={(e) => setLoginIdentifier(e.target.value)}
+                        placeholder="name@university.edu"
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#111827]/[0.14] rounded-lg text-[#111827] placeholder:text-[#6B7487] focus:outline-none focus:border-[#0F3470] focus:ring-2 focus:ring-[#0F3470]/15 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-[#111827] mb-1.5">Passcode</label>
+                      <input
+                        type="password"
+                        required
+                        value={loginPin}
+                        onChange={(e) => setLoginPin(e.target.value)}
+                        placeholder="Enter your passcode"
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#111827]/[0.14] rounded-lg text-[#111827] placeholder:text-[#6B7487] focus:outline-none focus:border-[#0F3470] focus:ring-2 focus:ring-[#0F3470]/15 transition-colors font-mono"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 px-4 rounded-lg bg-[#0F3470] hover:bg-[#163f82] text-white text-sm font-medium transition-colors"
+                    >
+                      Open study desk
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* View 2: Create Account */}
+              {authTab === "enroll" && (
+                <form onSubmit={handleEnroll} className="mt-6 space-y-4">
+                  {enrollError && (
+                    <div className="p-3 rounded-lg bg-[#FEF2F2] border border-[#B91C1C]/20 text-[#B91C1C] text-xs">
+                      {enrollError}
+                    </div>
+                  )}
                   <div>
-                    <label className="block text-xs font-mono font-semibold text-[#0F3470] mb-1">
-                      Student Full Name *
-                    </label>
+                    <label className="block text-xs font-medium text-[#111827] mb-1.5">Full name</label>
                     <input
                       type="text"
                       required
                       value={enrollName}
                       onChange={(e) => setEnrollName(e.target.value)}
-                      placeholder="e.g. Jordan Lee"
-                      className="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F3470]/30 focus:border-[#0F3470]"
+                      placeholder="Jordan Lee"
+                      className="w-full px-3 py-2 text-sm bg-white border border-[#111827]/[0.14] rounded-lg text-[#111827] placeholder:text-[#6B7487] focus:outline-none focus:border-[#0F3470] focus:ring-2 focus:ring-[#0F3470]/15 transition-colors"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-mono font-semibold text-[#0F3470] mb-1">
-                      Major &amp; Class Year *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={enrollMajor}
-                      onChange={(e) => setEnrollMajor(e.target.value)}
-                      placeholder="e.g. Neuroscience '27"
-                      className="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F3470]/30 focus:border-[#0F3470]"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-[#111827] mb-1.5">Course or department</label>
+                      <input
+                        type="text"
+                        required
+                        value={enrollMajor}
+                        onChange={(e) => setEnrollMajor(e.target.value)}
+                        placeholder="Biochemistry"
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#111827]/[0.14] rounded-lg text-[#111827] placeholder:text-[#6B7487] focus:outline-none focus:border-[#0F3470] focus:ring-2 focus:ring-[#0F3470]/15 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-[#111827] mb-1.5">Passcode</label>
+                      <input
+                        type="password"
+                        maxLength={12}
+                        required
+                        value={enrollPin}
+                        onChange={(e) => setEnrollPin(e.target.value)}
+                        placeholder="4+ characters"
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#111827]/[0.14] rounded-lg text-[#111827] placeholder:text-[#6B7487] focus:outline-none focus:border-[#0F3470] focus:ring-2 focus:ring-[#0F3470]/15 transition-colors font-mono"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-[#0F3470] mb-1">
-                    University / Institution *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={enrollInstitution}
-                    onChange={(e) => setEnrollInstitution(e.target.value)}
-                    placeholder="e.g. Harvard / Oxford / Stanford"
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F3470]/30 focus:border-[#0F3470]"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-mono font-semibold text-[#0F3470] mb-1">
-                      Academic Email *
-                    </label>
+                    <label className="block text-xs font-medium text-[#111827] mb-1.5">Academic email</label>
                     <input
                       type="email"
                       required
                       value={enrollEmail}
                       onChange={(e) => setEnrollEmail(e.target.value)}
-                      placeholder="jordan.lee@university.edu"
-                      className="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F3470]/30 focus:border-[#0F3470] font-mono"
+                      placeholder="name@university.edu"
+                      className="w-full px-3 py-2 text-sm bg-white border border-[#111827]/[0.14] rounded-lg text-[#111827] placeholder:text-[#6B7487] focus:outline-none focus:border-[#0F3470] focus:ring-2 focus:ring-[#0F3470]/15 transition-colors"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-mono font-semibold text-[#0F3470] mb-1">
-                      Create 4-Digit PIN *
-                    </label>
-                    <input
-                      type="password"
-                      maxLength={8}
-                      required
-                      value={enrollPin}
-                      onChange={(e) => setEnrollPin(e.target.value)}
-                      placeholder="1234"
-                      className="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F3470]/30 focus:border-[#0F3470] font-mono"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 rounded-lg bg-[#0F3470] hover:bg-[#16438c] text-white font-mono text-xs sm:text-sm font-bold tracking-wide transition-colors shadow-sm mt-2"
-                >
-                  Enroll Student &amp; Launch Desk
-                </button>
-                <div className="pt-2 border-t border-[#E2E8F0] text-center text-xs">
                   <button
-                    type="button"
-                    onClick={() => setAuthTab("login")}
-                    className="text-[#64748B] hover:text-[#0F3470] font-mono"
+                    type="submit"
+                    className="w-full py-2.5 px-4 rounded-lg bg-[#0F3470] hover:bg-[#163f82] text-white text-sm font-medium transition-colors"
                   >
-                    Already enrolled? <span className="text-[#0F3470] underline font-semibold">Sign In</span>
+                    Create student desk
                   </button>
-                </div>
-              </form>
-            )}
+                </form>
+              )}
+            </div>
+
+            {/* Bottom Note */}
+            <div className="flex items-center justify-between text-xs text-[#6B7487] pt-4 border-t border-[#111827]/[0.08]">
+              <span>Records stored locally per browser</span>
+              <span className="font-mono tabular-nums">v2.4</span>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* STUDENT DIGITAL ID & TRANSCRIPT MODAL */}
-      {isProfileModalOpen && currentStudent && (
-        <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          onClick={() => setIsProfileModalOpen(false)}
-        >
-          <div
-            className="bg-white rounded-2xl border border-[#CBD5E1] shadow-2xl w-full max-w-lg overflow-hidden my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* DIGITAL STUDENT CARD UI */}
-            <div className="p-5 sm:p-6 bg-gradient-to-br from-[#0F3470] via-[#0d2a58] to-[#16438c] text-white relative">
-              <button
-                type="button"
-                onClick={() => setIsProfileModalOpen(false)}
-                className="absolute top-4 right-4 text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+          {/* Right Column: Live Product Preview in Code (7 cols on desktop) */}
+          <div className="hidden lg:flex lg:col-span-7 bg-[#F5F7FA] p-12 xl:p-16 flex-col justify-between">
+            <div className="max-w-xl">
+              <div className="text-xs font-mono text-[#6B7487]">Syllabus &amp; active recall workstation</div>
+              <h2 className="font-serif text-2xl text-[#111827] font-semibold tracking-[-0.02em] mt-1 leading-[1.25]">
+                Upload lecture slides once. Drill the underlying mechanisms until exam day.
+              </h2>
+            </div>
 
-              <div className="flex items-center justify-between pb-4 border-b border-white/15">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <svg viewBox="0 0 100 100" className="w-full h-full">
-                      <circle cx="38" cy="50" r="23" fill="none" stroke="white" strokeWidth="4.5" />
-                      <circle cx="62" cy="50" r="23" fill="none" stroke="#DC2626" strokeWidth="4.5" />
-                      <circle cx="50" cy="50" r="14" fill="none" stroke="white" strokeWidth="2" strokeDasharray="3 3" />
-                      <line x1="20" y1="80" x2="80" y2="20" stroke="white" strokeWidth="3" strokeLinecap="round" />
-                      <circle cx="50" cy="50" r="6" fill="white" />
-                    </svg>
+            {/* Real Product Artifact Preview */}
+            <div className="my-auto py-8 max-w-xl w-full">
+              <div className="bg-white rounded-xl border border-[#111827]/[0.08] shadow-xs overflow-hidden">
+                {/* Document Header Bar */}
+                <div className="px-5 py-3.5 border-b border-[#111827]/[0.08] flex items-center justify-between bg-[#F5F7FA]/60">
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-mono text-xs font-medium text-[#0F3470]">
+                      Cellular_Respiration_Core.pdf
+                    </span>
                   </div>
-                  <div>
-                    <div className="text-[10px] font-mono tracking-widest text-[#93C5FD] font-semibold uppercase">
-                      GØJØ ACADEMIC INSTITUTE
+                  <span className="font-mono text-[11px] text-[#6B7487] tabular-nums">
+                    3 mechanisms · 4 recall questions
+                  </span>
+                </div>
+
+                {/* Takeaway Row Preview */}
+                <div className="p-5 space-y-4">
+                  <div className="flex items-start gap-3.5">
+                    <span className="font-mono text-xs font-medium text-[#0F3470] bg-[#ECEFF4] px-2 py-1 rounded tabular-nums shrink-0">
+                      01
+                    </span>
+                    <div>
+                      <div className="text-sm font-medium text-[#111827]">
+                        Glycolysis is cytosolic and strictly anaerobic
+                      </div>
+                      <p className="text-xs text-[#4B5565] mt-1 leading-[1.55]">
+                        Converts 1 glucose into 2 pyruvates in the cytoplasm. Consumes 2 ATP in the investment phase and yields 4 ATP via substrate-level phosphorylation (net +2 ATP, +2 NADH).
+                      </p>
                     </div>
-                    <div className="text-[9px] text-white/60 font-mono">OFFICIAL STUDENT CREDENTIAL</div>
                   </div>
-                </div>
-                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-mono font-bold tracking-wider">
-                  ACTIVE ENROLLED
-                </span>
-              </div>
 
-              <div className="flex items-center gap-4 pt-4">
-                <div
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white text-[#0F3470] font-mono text-xl sm:text-2xl font-black flex items-center justify-center shadow-lg border-2 border-white/30 shrink-0"
-                >
-                  {currentStudent.avatarInitials}
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-lg sm:text-xl font-bold font-serif text-white truncate">
-                    {currentStudent.name}
-                  </h4>
-                  <div className="text-xs font-mono text-[#93C5FD] font-semibold mt-0.5">
-                    ID: {currentStudent.id}
-                  </div>
-                  <div className="text-xs text-white/80 font-mono mt-0.5 truncate">
-                    {currentStudent.major}
-                  </div>
-                  <div className="text-[11px] text-white/60 truncate">
-                    {currentStudent.institution}
+                  <div className="border-t border-[#111827]/[0.06] pt-4 flex items-start gap-3.5">
+                    <span className="font-mono text-xs font-medium text-[#0F3470] bg-[#ECEFF4] px-2 py-1 rounded tabular-nums shrink-0">
+                      02
+                    </span>
+                    <div>
+                      <div className="text-sm font-medium text-[#111827]">
+                        Chemiosmotic proton gradient drives ATP Synthase
+                      </div>
+                      <p className="text-xs text-[#4B5565] mt-1 leading-[1.55]">
+                        Complexes I, III, and IV pump H+ across the inner mitochondrial membrane; O2 serves only as the terminal electron acceptor at Complex IV.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-                <div className="h-6 flex items-end gap-1 opacity-60">
-                  <div className="w-1 h-6 bg-white" />
-                  <div className="w-0.5 h-6 bg-white" />
-                  <div className="w-1.5 h-6 bg-white" />
-                  <div className="w-0.5 h-6 bg-white" />
-                  <div className="w-2 h-6 bg-white" />
-                  <div className="w-0.5 h-6 bg-white" />
-                  <div className="w-1 h-6 bg-white" />
-                  <div className="w-1.5 h-6 bg-white" />
-                  <div className="w-0.5 h-6 bg-white" />
-                  <div className="w-2 h-6 bg-white" />
-                  <div className="w-1 h-6 bg-white" />
-                </div>
-                <div className="text-[9px] font-mono text-white/50 text-right">
-                  VALID: 2026-2027 ACADEMIC SESSION
+                {/* Active Recall Footer Strip */}
+                <div className="px-5 py-3.5 bg-[#ECEFF4]/70 border-t border-[#111827]/[0.08] flex items-center justify-between text-xs">
+                  <div className="text-[#4B5565]">
+                    <span className="font-medium text-[#111827]">Recall check:</span> What halts immediately if Complex IV loses O2?
+                  </div>
+                  <span className="font-mono text-[11px] text-[#0F3470] font-medium shrink-0 ml-4">
+                    Proton pumping &rarr;
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Live Academic Transcript & Stats */}
-            <div className="p-5 sm:p-6 bg-slate-50 border-t border-[#E2E8F0]">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-mono uppercase tracking-wider font-bold text-[#0F3470]">
-                  Academic Mastery Record
-                </span>
-                <span className="text-[10px] font-mono text-[#64748B]">Personal to this student</span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-                <div className="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-2xs">
-                  <div className="text-[10px] font-mono text-[#64748B] flex items-center gap-1">
-                    <span>🔥</span><span>Streak</span>
-                  </div>
-                  <div className="text-base sm:text-lg font-bold font-mono text-[#0F3470] mt-0.5">
-                    {currentStudent.stats?.streak || 1} Days
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-2xs">
-                  <div className="text-[10px] font-mono text-[#64748B] flex items-center gap-1">
-                    <span>🎯</span><span>Accuracy</span>
-                  </div>
-                  <div className="text-base sm:text-lg font-bold font-mono text-emerald-600 mt-0.5">
-                    {Math.round(
-                      ((currentStudent.stats?.drillsMastered || 0) / (currentStudent.stats?.drillsAttempted || 1)) * 100
-                    )}%
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-2xs">
-                  <div className="text-[10px] font-mono text-[#64748B] flex items-center gap-1">
-                    <span>🧠</span><span>Cards</span>
-                  </div>
-                  <div className="text-base sm:text-lg font-bold font-mono text-[#0F3470] mt-0.5">
-                    {currentStudent.stats?.cardsMastered || 0} Mastered
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-2xs">
-                  <div className="text-[10px] font-mono text-[#64748B] flex items-center gap-1">
-                    <span>📚</span><span>Syllabi</span>
-                  </div>
-                  <div className="text-base sm:text-lg font-bold font-mono text-[#0F3470] mt-0.5">
-                    {currentStudent.stats?.decksAnalyzed || 1} Analyzed
-                  </div>
+            {/* Quiet Ledger Footer */}
+            <div className="max-w-xl grid grid-cols-3 gap-6 pt-6 border-t border-[#111827]/[0.08] text-xs">
+              <div>
+                <div className="font-medium text-[#111827]">Source synthesis</div>
+                <div className="text-[#6B7487] mt-0.5 leading-[1.4]">
+                  Distills PDFs, slide photos, and raw notes into numbered mechanisms.
                 </div>
               </div>
-
-              {/* Actions */}
-              <div className="mt-5 pt-4 border-t border-[#E2E8F0] flex flex-wrap gap-2 justify-between items-center">
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileModalOpen(false);
-                      setIsLoginModalOpen(true);
-                    }}
-                    className="px-3 py-1.5 rounded-lg border border-[#0F3470]/30 bg-white hover:bg-[#E4F1FF] text-[#0F3470] font-mono text-xs font-semibold transition-colors shadow-2xs"
-                  >
-                    ⇄ Switch Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-mono text-xs font-semibold transition-colors"
-                  >
-                    Sign Out
-                  </button>
+              <div>
+                <div className="font-medium text-[#111827]">Active recall</div>
+                <div className="text-[#6B7487] mt-0.5 leading-[1.4]">
+                  Generates conceptual multiple-choice drills with rationales.
                 </div>
+              </div>
+              <div>
+                <div className="font-medium text-[#111827]">Personal record</div>
+                <div className="text-[#6B7487] mt-0.5 leading-[1.4]">
+                  Keeps each student&apos;s uploaded syllabus and accuracy separate.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STUDENT RECORD MODAL (UNSLOPPED) */}
+      {isProfileModalOpen && currentStudent && (
+        <div
+          className="fixed inset-0 bg-[#111827]/40 z-[100] flex items-center justify-center p-4 overflow-y-auto"
+          onClick={() => setIsProfileModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl border border-[#111827]/[0.1] shadow-lg w-full max-w-md overflow-hidden my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-[#111827]/[0.08] flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-11 h-11 rounded-lg bg-[#0F3470] text-white font-mono text-sm font-medium flex items-center justify-center shrink-0">
+                  {currentStudent.avatarInitials}
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-base font-semibold text-[#111827] truncate">{currentStudent.name}</h4>
+                  <div className="text-xs text-[#4B5565] truncate mt-0.5">{currentStudent.major}</div>
+                  <div className="text-[11px] font-mono text-[#6B7487] truncate mt-0.5 tabular-nums">
+                    {currentStudent.email} · {currentStudent.id}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(false)}
+                className="text-[#6B7487] hover:text-[#111827] p-1 rounded-md hover:bg-[#ECEFF4] transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Progress Figures (Tabular Nums, No Emojis) */}
+            <div className="p-5 bg-[#F5F7FA] border-b border-[#111827]/[0.08]">
+              <div className="text-xs font-medium text-[#4B5565] mb-3">Study progress</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white p-3 rounded-lg border border-[#111827]/[0.08]">
+                  <div className="text-[11px] text-[#6B7487]">Syllabi indexed</div>
+                  <div className="text-lg font-semibold font-mono text-[#111827] mt-1 tabular-nums">
+                    {currentStudent.stats?.decksAnalyzed || 1}
+                  </div>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-[#111827]/[0.08]">
+                  <div className="text-[11px] text-[#6B7487]">Recall accuracy</div>
+                  <div className="text-lg font-semibold font-mono text-[#111827] mt-1 tabular-nums">
+                    {(currentStudent.stats?.drillsAttempted || 0) > 0
+                      ? `${Math.round(
+                          ((currentStudent.stats?.drillsMastered || 0) /
+                            (currentStudent.stats?.drillsAttempted || 1)) *
+                            100
+                        )}%`
+                      : "—"}
+                  </div>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-[#111827]/[0.08]">
+                  <div className="text-[11px] text-[#6B7487]">Cards reviewed</div>
+                  <div className="text-lg font-semibold font-mono text-[#111827] mt-1 tabular-nums">
+                    {currentStudent.stats?.cardsMastered || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-4 bg-white flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="px-4 py-1.5 rounded-lg bg-[#0F3470] hover:bg-[#16438c] text-white font-mono text-xs font-bold transition-colors ml-auto"
+                  onClick={() => {
+                    setIsProfileModalOpen(false);
+                    setIsLoginModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-[#111827]/[0.12] bg-white hover:bg-[#F5F7FA] text-[#111827] text-xs font-medium transition-colors"
                 >
-                  Done
+                  Switch student
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="px-3 py-1.5 rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2] text-xs font-medium transition-colors"
+                >
+                  Sign out
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(false)}
+                className="px-4 py-1.5 rounded-lg bg-[#0F3470] hover:bg-[#163f82] text-white text-xs font-medium transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
