@@ -404,30 +404,79 @@
           </div>
         </div>
 
-        <!-- 4. DOCUMENT ASSISTANT (CHAT) -->
-        <div id="view-chat" class="hidden max-w-2xl space-y-4">
-          <div class="bg-white border border-[#E2E8F0] rounded-xl h-[calc(100dvh-200px)] md:h-[460px] flex flex-col shadow-sm overflow-hidden">
-            <div class="p-3.5 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-brandNavy text-white shrink-0">
-              <span class="font-mono font-semibold">Gojo // Document In-Depth Assistant</span>
-              <span class="text-[10px] font-mono text-[#93C5FD]">Grounded in your document</span>
+        <!-- 4. DOCUMENT ASSISTANT (PRESTIGE UI UPGRADE) -->
+        <div id="view-chat" class="hidden max-w-2xl mx-auto space-y-4">
+          <div class="bg-white border border-[#E2E8F0] rounded-2xl h-[calc(100dvh-200px)] md:h-[500px] flex flex-col shadow-sm overflow-hidden">
+            <!-- Header bar inside the assistant -->
+            <div class="px-4 py-3 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-white shrink-0">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span class="font-mono font-bold text-brandNavy truncate">Gojo // Document In-Depth Assistant</span>
+                <span class="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-brandSky text-brandIndigo font-semibold border border-[#C5DFFF] shrink-0">Strictly Grounded</span>
+              </div>
+              <div class="flex items-center gap-2 text-[11px] font-mono text-[#64748B] shrink-0">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200">
+                  <svg class="w-3.5 h-3.5 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span class="font-semibold text-brandNavy">Gemini Flash</span>
+                </span>
+              </div>
             </div>
 
-            <div id="chat-messages-box" class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs leading-relaxed"></div>
+            <!-- Messages Stream Area -->
+            <div id="chat-messages-box" class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs leading-relaxed"></div>
 
-            <form onsubmit="handleSendMessage(event)" class="p-2.5 sm:p-3 border-t border-[#E2E8F0] flex gap-2 bg-white shrink-0">
-              <input
-                type="text"
-                id="chat-input-field"
-                placeholder="Ask about concepts, steps, or mechanisms..."
-                class="flex-1 bg-[#F8F9FA] border border-[#E2E8F0] rounded-lg px-3 py-2.5 text-xs text-brandNavy placeholder:text-[#64748B] focus:outline-none focus:border-brandIndigo font-sans min-h-[44px]"
-              />
-              <button
-                type="submit"
-                class="px-4 sm:px-5 py-2.5 rounded-lg bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs transition-opacity shrink-0 min-h-[44px]"
-              >
-                Send
-              </button>
-            </form>
+            <!-- PRESTIGE UI PROMPT COMPOSER -->
+            <div class="p-2.5 sm:p-3.5 border-t border-[#E2E8F0] bg-[#F8F9FA]/50 shrink-0">
+              <form id="chat-composer-form" onsubmit="handleSendMessage(event)" class="bg-white border border-[#CBD5E1] focus-within:border-brandIndigo focus-within:ring-2 focus-within:ring-brandIndigo/10 rounded-2xl p-2.5 sm:p-3 shadow-sm transition-all">
+                <!-- Attachments Pill Strip -->
+                <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
+                  <span class="inline-flex h-6 items-center gap-1.5 rounded-full bg-brandSky border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-brandNavy font-semibold max-w-[220px]">
+                    <svg class="w-3 h-3 text-brandIndigo shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span id="chat-active-attachment-name" class="truncate">Cellular_Respiration_Core.pdf</span>
+                  </span>
+                  <span class="inline-flex h-6 items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 text-[10px] font-mono text-[#64748B]">
+                    <span>⚡ Full-Deck Search Active</span>
+                  </span>
+                </div>
+
+                <!-- Input Field -->
+                <textarea
+                  id="chat-input-field"
+                  rows="2"
+                  placeholder="Ask about concepts, formulas, slide mechanisms, or traps..."
+                  class="w-full bg-transparent border-0 p-1 text-xs sm:text-[13px] text-brandNavy placeholder:text-[#64748B] focus:outline-none resize-none leading-relaxed font-sans"
+                  onkeydown="handleChatInputKeydown(event)"
+                ></textarea>
+
+                <!-- Composer Bottom Toolbar -->
+                <div class="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-1">
+                  <div class="flex items-center gap-1.5 text-[11px] font-mono text-[#64748B]">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-brandNavy font-semibold">
+                      <svg class="w-3 h-3 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Grounded Mode
+                    </span>
+                    <span class="hidden sm:inline text-slate-400 text-[10px]">• Enter ↵ to send</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    id="chat-send-btn"
+                    class="w-8 h-8 rounded-full bg-brandIndigo hover:opacity-90 active:scale-95 text-white flex items-center justify-center transition-all shadow-sm disabled:opacity-40 shrink-0"
+                    title="Send message"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
 
@@ -768,11 +817,14 @@
     let currentCardIndex = 0;
     let isFlipped = false;
 
+    let isChatThinking = false;
+    let isChatStreaming = false;
+
     let chatMessages = [
       {
         role: "gojo",
         content:
-          "Document context is indexed. Ask about any mechanisms in the text or request a rapid drill.",
+          "Indexed Cellular_Respiration_Core.pdf. Ask about any mechanisms in your slides, clarify difficult terms, or request a conceptual drill.",
       },
     ];
 
@@ -1386,26 +1438,136 @@
       }
     }
 
+    function setPromptQuery(text) {
+      const input = document.getElementById("chat-input-field");
+      if (input) {
+        input.value = text;
+        input.focus();
+      }
+    }
+
+    function handleChatInputKeydown(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const form = document.getElementById("chat-composer-form");
+        if (form) form.requestSubmit();
+      }
+    }
+
+    function formatChatMarkdown(text) {
+      if (!text) return "";
+      const escaped = escapeHtml(text);
+      const bolded = escaped.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-brandNavy">$1</strong>');
+      return bolded.replace(/\n/g, "<br/>");
+    }
+
     function renderChat() {
       const box = document.getElementById("chat-messages-box");
-      box.innerHTML = chatMessages
-        .map(
-          (msg) => `
-          <div class="p-3.5 rounded-lg border ${
-            msg.role === "user"
-              ? "bg-brandSky/60 border-[#C5DFFF] text-brandNavy ml-8"
-              : "bg-white border-[#E2E8F0] text-brandNavy shadow-sm mr-8"
-          }">
-            <span class="font-mono text-[10px] block mb-1 font-semibold ${
-              msg.role === "user" ? "text-[#64748B]" : "text-brandIndigo"
-            }">
-              ${msg.role === "user" ? "USER QUERY" : "GOJO // RESEARCH PARTNER"}
-            </span>
-            <p>${escapeHtml(msg.content).replace(/\n/g, "<br/>")}</p>
+      const attachLabel = document.getElementById("chat-active-attachment-name");
+      if (attachLabel) {
+        attachLabel.textContent = studyData.filename || "Lecture_Notes.pdf";
+      }
+
+      const hasUserMessages = chatMessages.some((m) => m.role === "user");
+      let html = "";
+
+      // Greeting Hero (shown when starting a session, Prestige UI "What are we working on today?" style)
+      if (!hasUserMessages) {
+        html += `
+          <div class="text-center py-5 sm:py-7 px-2 max-w-lg mx-auto transition-opacity duration-300">
+            <div class="w-11 h-11 rounded-2xl bg-brandSky text-brandIndigo flex items-center justify-center mx-auto mb-3 shadow-sm border border-[#C5DFFF]">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 class="text-lg sm:text-xl font-serif font-bold text-brandNavy tracking-tight">
+              What are we working on today?
+            </h3>
+            <p class="text-xs text-[#64748B] mt-1.5 leading-relaxed max-w-sm mx-auto">
+              Ask deep questions about "${escapeHtml(studyData.filename)}", clarify tricky exam nuances, or step through complex mechanisms.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-1.5 mt-4">
+              <button
+                type="button"
+                onclick="setPromptQuery('Explain the primary foundational mechanism step-by-step')"
+                class="text-[11px] font-mono px-3 py-1.5 rounded-full bg-white border border-[#CBD5E1] text-brandNavy hover:border-brandIndigo hover:bg-brandSky/40 transition-colors shadow-2xs"
+              >
+                💡 Primary mechanism
+              </button>
+              <button
+                type="button"
+                onclick="setPromptQuery('What is the Professor\\'s key exam insight and primary trap?')"
+                class="text-[11px] font-mono px-3 py-1.5 rounded-full bg-white border border-[#CBD5E1] text-brandNavy hover:border-brandIndigo hover:bg-brandSky/40 transition-colors shadow-2xs"
+              >
+                🎯 Professor's exam insight
+              </button>
+              <button
+                type="button"
+                onclick="setPromptQuery('Compare the most confusing vocabulary terms in this lecture')"
+                class="text-[11px] font-mono px-3 py-1.5 rounded-full bg-white border border-[#CBD5E1] text-brandNavy hover:border-brandIndigo hover:bg-brandSky/40 transition-colors shadow-2xs"
+              >
+                ⚡ Compare confusing terms
+              </button>
+            </div>
           </div>
-        `
-        )
+        `;
+      }
+
+      // Render Messages
+      html += chatMessages
+        .map((msg) => {
+          if (msg.role === "user") {
+            return `
+              <div class="flex flex-col items-end gap-1.5 max-w-[88%] ml-auto">
+                <div class="flex flex-wrap gap-1.5 justify-end">
+                  <span class="inline-flex h-6 items-center gap-1.5 rounded-full bg-brandSky border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-brandNavy font-semibold shadow-2xs">
+                    <svg class="w-3 h-3 text-brandIndigo shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="truncate max-w-[170px]">${escapeHtml(msg.attachment || studyData.filename)}</span>
+                  </span>
+                </div>
+                <div class="rounded-2xl rounded-tr-xs bg-brandIndigo text-white px-4 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-sm whitespace-pre-wrap">
+                  ${escapeHtml(msg.content)}
+                </div>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
+                <div class="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-brandIndigo px-1">
+                  <svg class="w-3.5 h-3.5 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>Gemini 2.5 Flash // Sensei</span>
+                </div>
+                <div class="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 text-xs sm:text-[13px] leading-relaxed text-slate-800 shadow-sm">
+                  ${formatChatMarkdown(msg.content)}
+                </div>
+              </div>
+            `;
+          }
+        })
         .join("");
+
+      // Thinking State (faint Prestige skeleton lines)
+      if (isChatThinking) {
+        html += `
+          <div class="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
+            <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-brandIndigo px-1">
+              <span class="w-2 h-2 rounded-full bg-brandIndigo animate-ping"></span>
+              <span class="animate-pulse">Thinking &amp; Scanning Slide Context...</span>
+            </div>
+            <div class="w-full rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 shadow-sm flex flex-col gap-2.5">
+              <div class="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style="width: 94%"></div>
+              <div class="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style="width: 86%"></div>
+              <div class="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style="width: 48%"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      box.innerHTML = html;
       box.scrollTop = box.scrollHeight;
     }
 
@@ -1767,14 +1929,32 @@
       renderCards();
     }
 
+    async function streamTextIntoMessage(targetIndex, fullText) {
+      const words = fullText.split(" ");
+      chatMessages[targetIndex].content = "";
+      for (let i = 0; i < words.length; i++) {
+        chatMessages[targetIndex].content += (i === 0 ? "" : " ") + words[i];
+        renderChat();
+        const word = words[i];
+        const delay = 24 + (word.length * 5) + (/[.,!?:;]$/.test(word) ? 100 : 0);
+        await new Promise((r) => setTimeout(r, Math.min(delay, 75)));
+      }
+      renderChat();
+    }
+
     async function handleSendMessage(e) {
       e.preventDefault();
       const input = document.getElementById("chat-input-field");
       const userQuery = input.value.trim();
-      if (!userQuery) return;
+      if (!userQuery || isChatThinking || isChatStreaming) return;
 
-      chatMessages.push({ role: "user", content: userQuery });
+      chatMessages.push({
+        role: "user",
+        content: userQuery,
+        attachment: studyData.filename,
+      });
       input.value = "";
+      isChatThinking = true;
       renderChat();
 
       const sourceText = document.getElementById("source-textarea").value.trim();
@@ -1782,6 +1962,7 @@
         sourceText ||
         `${studyData.trap}\n${studyData.takeaways.map((t) => `${t.concept}: ${t.desc}`).join("\n")}`;
 
+      let replyText = "";
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -1796,34 +1977,37 @@
           }),
         });
         const data = await res.json();
-        if (res.ok && data.reply) {
-          chatMessages.push({ role: "gojo", content: data.reply });
-          renderChat();
-          return;
+        if (res.ok && data && data.reply) {
+          replyText = data.reply;
         }
       } catch (err) {
         console.warn("Using local document search for chat:", err);
       }
 
-      // Grounded local answer from the user's actual uploaded document
-      const queryWords = userQuery
-        .toLowerCase()
-        .split(/\W+/)
-        .filter((w) => w.length > 3);
-      const sentences = contextStr
-        .split(/(?<=[.!?])\s+|\n+/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 20);
-      const bestMatch =
-        sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
-        studyData.takeaways[0]?.desc ||
-        studyData.trap;
+      if (!replyText) {
+        // Grounded local answer from the user's actual uploaded document
+        const queryWords = userQuery
+          .toLowerCase()
+          .split(/\W+/)
+          .filter((w) => w.length > 3);
+        const sentences = contextStr
+          .split(/(?<=[.!?])\s+|\n+/)
+          .map((s) => s.trim())
+          .filter((s) => s.length > 20);
+        const bestMatch =
+          sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
+          studyData.takeaways[0]?.desc ||
+          studyData.trap;
 
-      chatMessages.push({
-        role: "gojo",
-        content: `From "${studyData.filename}": ${bestMatch}`,
-      });
-      renderChat();
+        replyText = `From "${studyData.filename}": ${bestMatch}`;
+      }
+
+      isChatThinking = false;
+      isChatStreaming = true;
+      const targetIdx = chatMessages.length;
+      chatMessages.push({ role: "gojo", content: "" });
+      await streamTextIntoMessage(targetIdx, replyText);
+      isChatStreaming = false;
     }
 
     function handlePrint() {

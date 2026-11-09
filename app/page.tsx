@@ -34,6 +34,7 @@ interface StudyPayload {
 interface ChatMessage {
   role: "user" | "gojo";
   content: string;
+  attachment?: string;
 }
 
 // --- SAMPLE DATASET ---
@@ -212,11 +213,12 @@ export default function AcademicWorkspace() {
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
 
   // Chat State
+  const [isChatThinking, setIsChatThinking] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       role: "gojo",
       content:
-        "Document context is indexed. Ask about any mechanisms in the text or request a rapid drill.",
+        "Indexed Cellular_Respiration_Core.pdf. Ask about any mechanisms in your slides, clarify difficult terms, or request a conceptual drill.",
     },
   ]);
   const [chatInput, setChatInput] = useState<string>("");
@@ -555,19 +557,43 @@ export default function AcademicWorkspace() {
     }
   };
 
+  const streamTextIntoMessage = async (fullText: string) => {
+    const words = fullText.split(" ");
+    let current = "";
+    for (let i = 0; i < words.length; i++) {
+      current += (i === 0 ? "" : " ") + words[i];
+      const snapshot = current;
+      setChatMessages((prev) => {
+        const copy = [...prev];
+        if (copy.length > 0 && copy[copy.length - 1].role === "gojo") {
+          copy[copy.length - 1] = { ...copy[copy.length - 1], content: snapshot };
+        }
+        return copy;
+      });
+      const word = words[i];
+      const delay = 24 + (word.length * 5) + (/[.,!?:;]$/.test(word) ? 100 : 0);
+      await new Promise((r) => setTimeout(r, Math.min(delay, 75)));
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isChatThinking) return;
 
     const userQuery = chatInput.trim();
-    const updatedHistory: ChatMessage[] = [...chatMessages, { role: "user", content: userQuery }];
+    const updatedHistory: ChatMessage[] = [
+      ...chatMessages,
+      { role: "user", content: userQuery, attachment: studyData.filename },
+    ];
     setChatMessages(updatedHistory);
     setChatInput("");
+    setIsChatThinking(true);
 
     const contextStr =
       sourceText.trim() ||
       `${studyData.trap}\n${studyData.takeaways.map((t) => `${t.concept}: ${t.desc}`).join("\n")}`;
 
+    let replyText = "";
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -583,33 +609,32 @@ export default function AcademicWorkspace() {
       });
       const data = await res.json().catch(() => null);
       if (res.ok && data && data.reply) {
-        setChatMessages((prev) => [...prev, { role: "gojo", content: data.reply }]);
-        return;
+        replyText = data.reply;
       }
     } catch {
       // Fallback to local grounded document search
     }
 
-    const queryWords = userQuery
-      .toLowerCase()
-      .split(/\W+/)
-      .filter((w) => w.length > 3);
-    const sentences = contextStr
-      .split(/(?<=[.!?])\s+|\n+/)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 20);
-    const bestMatch =
-      sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
-      studyData.takeaways[0]?.desc ||
-      studyData.trap;
+    if (!replyText) {
+      const queryWords = userQuery
+        .toLowerCase()
+        .split(/\W+/)
+        .filter((w) => w.length > 3);
+      const sentences = contextStr
+        .split(/(?<=[.!?])\s+|\n+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 20);
+      const bestMatch =
+        sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
+        studyData.takeaways[0]?.desc ||
+        studyData.trap;
 
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        role: "gojo",
-        content: `From "${studyData.filename}": ${bestMatch}`,
-      },
-    ]);
+      replyText = `From "${studyData.filename}": ${bestMatch}`;
+    }
+
+    setIsChatThinking(false);
+    setChatMessages((prev) => [...prev, { role: "gojo", content: "" }]);
+    await streamTextIntoMessage(replyText);
   };
 
   return (
@@ -1053,52 +1078,173 @@ export default function AcademicWorkspace() {
               </div>
             )}
 
-            {/* 4. DOCUMENT ASSISTANT (CHAT) */}
+            {/* 4. DOCUMENT ASSISTANT (PRESTIGE UI UPGRADE) */}
             {activeTab === "chat" && (
-              <div className="max-w-2xl space-y-4">
-                <div className="bg-white border border-[#E2E8F0] rounded-xl h-[calc(100dvh-200px)] md:h-[460px] flex flex-col shadow-sm overflow-hidden">
-                  <div className="p-3.5 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-[#0F3470] text-white shrink-0">
-                    <span className="font-mono font-semibold">Gojo // Document In-Depth Assistant</span>
-                    <span className="text-[10px] font-mono text-[#93C5FD]">Grounded in your document</span>
+              <div className="max-w-2xl mx-auto space-y-4">
+                <div className="bg-white border border-[#E2E8F0] rounded-2xl h-[calc(100dvh-200px)] md:h-[500px] flex flex-col shadow-sm overflow-hidden">
+                  {/* Header bar inside the assistant */}
+                  <div className="px-4 py-3 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-white shrink-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="font-mono font-bold text-[#0F3470] truncate">Gojo // Document In-Depth Assistant</span>
+                      <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-[#E4F1FF] text-[#0F3470] font-semibold border border-[#C5DFFF] shrink-0">
+                        Strictly Grounded
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] font-mono text-[#64748B] shrink-0">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200">
+                        <svg className="w-3.5 h-3.5 text-[#0F3470]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span className="font-semibold text-[#0F3470]">Gemini Flash</span>
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs leading-relaxed">
+                  {/* Messages Stream Area */}
+                  <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs leading-relaxed">
+                    {!chatMessages.some((m) => m.role === "user") && (
+                      <div className="text-center py-5 sm:py-7 px-2 max-w-lg mx-auto">
+                        <div className="w-11 h-11 rounded-2xl bg-[#E4F1FF] text-[#0F3470] flex items-center justify-center mx-auto mb-3 shadow-sm border border-[#C5DFFF]">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-serif font-bold text-[#0F3470] tracking-tight">
+                          What are we working on today?
+                        </h3>
+                        <p className="text-xs text-[#64748B] mt-1.5 leading-relaxed max-w-sm mx-auto">
+                          Ask deep questions about &ldquo;{studyData.filename}&rdquo;, clarify tricky exam nuances, or step through complex mechanisms.
+                        </p>
+                        <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4">
+                          {[
+                            "💡 Explain primary mechanism",
+                            "🎯 Professor's exam insight",
+                            "⚡ Compare confusing terms",
+                          ].map((promptLabel, pIdx) => (
+                            <button
+                              key={pIdx}
+                              type="button"
+                              onClick={() => {
+                                const queries = [
+                                  "Explain the primary foundational mechanism step-by-step",
+                                  "What is the Professor's key exam insight and primary trap?",
+                                  "Compare the most confusing vocabulary terms in this lecture",
+                                ];
+                                setChatInput(queries[pIdx]);
+                              }}
+                              className="text-[11px] font-mono px-3 py-1.5 rounded-full bg-white border border-[#CBD5E1] text-[#0F3470] hover:border-[#0F3470] hover:bg-[#E4F1FF]/40 transition-colors shadow-2xs"
+                            >
+                              {promptLabel}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {chatMessages.map((msg, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-3.5 rounded-lg border ${
-                          msg.role === "user"
-                            ? "bg-[#E4F1FF]/60 border-[#C5DFFF] text-[#0F3470] ml-6 sm:ml-8"
-                            : "bg-white border-[#E2E8F0] text-[#0F3470] shadow-sm mr-6 sm:mr-8"
-                        }`}
-                      >
-                        <span
-                          className={`font-mono text-[10px] block mb-1 font-semibold ${
-                            msg.role === "user" ? "text-[#64748B]" : "text-[#0F3470]"
-                          }`}
-                        >
-                          {msg.role === "user" ? "USER QUERY" : "GOJO // RESEARCH PARTNER"}
-                        </span>
-                        <p className="leading-relaxed">{msg.content}</p>
+                      <div key={idx}>
+                        {msg.role === "user" ? (
+                          <div className="flex flex-col items-end gap-1.5 max-w-[88%] ml-auto">
+                            <div className="flex flex-wrap gap-1.5 justify-end">
+                              <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-[#E4F1FF] border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-[#0F3470] font-semibold shadow-2xs">
+                                <svg className="w-3 h-3 text-[#0F3470] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span className="truncate max-w-[170px]">{msg.attachment || studyData.filename}</span>
+                              </span>
+                            </div>
+                            <div className="rounded-2xl rounded-tr-xs bg-[#0F3470] text-white px-4 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-sm whitespace-pre-wrap">
+                              {msg.content}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
+                            <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-[#0F3470] px-1">
+                              <svg className="w-3.5 h-3.5 text-[#0F3470]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              <span>Gemini 2.5 Flash // Sensei</span>
+                            </div>
+                            <div className="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 text-xs sm:text-[13px] leading-relaxed text-slate-800 shadow-sm whitespace-pre-wrap">
+                              {msg.content}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
+
+                    {isChatThinking && (
+                      <div className="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
+                        <div className="flex items-center gap-2 text-[11px] font-mono font-semibold text-[#0F3470] px-1">
+                          <span className="w-2 h-2 rounded-full bg-[#0F3470] animate-ping" />
+                          <span className="animate-pulse">Thinking &amp; Scanning Slide Context...</span>
+                        </div>
+                        <div className="w-full rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 shadow-sm flex flex-col gap-2.5">
+                          <div className="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style={{ width: "94%" }} />
+                          <div className="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style={{ width: "86%" }} />
+                          <div className="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style={{ width: "48%" }} />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <form onSubmit={handleSendMessage} className="p-2.5 sm:p-3 border-t border-[#E2E8F0] flex gap-2 bg-white shrink-0">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Ask about concepts, steps, or mechanisms..."
-                      className="flex-1 bg-[#F8F9FA] border border-[#E2E8F0] rounded-lg px-3 py-2.5 text-xs text-[#0F3470] placeholder:text-[#64748B] focus:outline-none focus:border-[#0F3470] font-sans min-h-[44px]"
-                    />
-                    <button
-                      type="submit"
-                      className="px-4 sm:px-5 py-2.5 rounded-lg bg-[#0F3470] hover:opacity-95 text-white font-semibold text-xs transition-opacity shrink-0 min-h-[44px]"
-                    >
-                      Send
-                    </button>
-                  </form>
+                  {/* PRESTIGE UI PROMPT COMPOSER */}
+                  <div className="p-2.5 sm:p-3.5 border-t border-[#E2E8F0] bg-[#F8F9FA]/50 shrink-0">
+                    <form onSubmit={handleSendMessage} className="bg-white border border-[#CBD5E1] focus-within:border-[#0F3470] focus-within:ring-2 focus-within:ring-[#0F3470]/10 rounded-2xl p-2.5 sm:p-3 shadow-sm transition-all">
+                      {/* Attachments Pill Strip */}
+                      <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                        <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-[#E4F1FF] border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-[#0F3470] font-semibold max-w-[220px]">
+                          <svg className="w-3 h-3 text-[#0F3470] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="truncate">{studyData.filename}</span>
+                        </span>
+                        <span className="inline-flex h-6 items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 text-[10px] font-mono text-[#64748B]">
+                          <span>⚡ Full-Deck Search Active</span>
+                        </span>
+                      </div>
+
+                      {/* Input Field */}
+                      <textarea
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage(e);
+                          }
+                        }}
+                        rows={2}
+                        placeholder="Ask about concepts, formulas, slide mechanisms, or traps..."
+                        className="w-full bg-transparent border-0 p-1 text-xs sm:text-[13px] text-[#0F3470] placeholder:text-[#64748B] focus:outline-none resize-none leading-relaxed font-sans"
+                      />
+
+                      {/* Composer Bottom Toolbar */}
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-1">
+                        <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#64748B]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-[#0F3470] font-semibold">
+                            <svg className="w-3 h-3 text-[#0F3470]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Grounded Mode
+                          </span>
+                          <span className="hidden sm:inline text-slate-400 text-[10px]">• Enter ↵ to send</span>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={!chatInput.trim() || isChatThinking}
+                          className="w-8 h-8 rounded-full bg-[#0F3470] hover:opacity-90 active:scale-95 text-white flex items-center justify-center transition-all shadow-sm disabled:opacity-40 shrink-0"
+                          title="Send message"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                          </svg>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               </div>
             )}
