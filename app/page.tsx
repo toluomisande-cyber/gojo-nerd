@@ -24,6 +24,7 @@ interface Flashcard {
 
 interface StudyPayload {
   filename: string;
+  unit_title?: string;
   takeaways: Takeaway[];
   terms: string[];
   trap: string;
@@ -836,6 +837,11 @@ export default function AcademicWorkspace() {
               text: cleanText,
               imageBase64: compressed.base64,
               imageMimeType: compressed.mimeType,
+              userMemory: {
+                name: currentStudent?.name || "Student",
+                major: currentStudent?.major || "",
+                memories: userMemories.slice(0, 15),
+              },
             }),
             signal: controller.signal,
           });
@@ -843,6 +849,14 @@ export default function AcademicWorkspace() {
           const formData = new FormData();
           if (fileToUse) formData.append("file", fileToUse);
           if (cleanText) formData.append("text", cleanText);
+          formData.append(
+            "userMemory",
+            JSON.stringify({
+              name: currentStudent?.name || "Student",
+              major: currentStudent?.major || "",
+              memories: userMemories.slice(0, 15),
+            })
+          );
           response = await fetch("/api/analyze", {
             method: "POST",
             body: formData,
@@ -864,6 +878,7 @@ export default function AcademicWorkspace() {
         const fallback = synthesizeFromTextLocally(resolvedText, activeFilename);
         const nextDeck: StudyPayload = {
           filename: activeFilename,
+          unit_title: apiData.unit_title || activeFilename,
           takeaways: Array.isArray(apiData.takeaways) && apiData.takeaways.length ? apiData.takeaways : fallback.takeaways,
           terms: Array.isArray(apiData.terms) && apiData.terms.length ? apiData.terms : fallback.terms,
           trap: apiData.trap || fallback.trap,
@@ -1261,7 +1276,7 @@ export default function AcademicWorkspace() {
                       EXECUTIVE SYNTHESIS // HIGH-YIELD CORE
                     </span>
                     <h2 className="text-base font-serif font-bold mt-0.5">
-                      {studyData.filename}
+                      {studyData.unit_title || studyData.filename}
                     </h2>
                   </div>
                   <div className="text-right font-mono text-[11px] text-white/80 hidden sm:block">

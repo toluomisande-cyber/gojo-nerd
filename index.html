@@ -2581,7 +2581,7 @@
     function renderSummary() {
       renderStudentGreeting();
       document.getElementById("masthead-filename").textContent = studyData.filename;
-      document.getElementById("banner-course-title").textContent = studyData.filename;
+      document.getElementById("banner-course-title").textContent = studyData.unit_title || studyData.filename;
       document.getElementById("summary-trap").textContent = studyData.trap;
       document.getElementById("summary-pillars-count").textContent = `${studyData.takeaways.length} High-Yield Pillars`;
       document.getElementById("banner-pillars-num").textContent = `0${studyData.takeaways.length}`;
@@ -3185,6 +3185,7 @@
             const localFallback = synthesizeFromTextLocally(latestText || activeFilename, activeFilename);
             studyData = {
               filename: activeFilename,
+              unit_title: d.unit_title || activeFilename,
               takeaways,
               terms: terms.length > 0 ? terms.map((t) => (typeof t === "string" ? t : t.term || "Term")) : localFallback.terms,
               trap: d.trap || localFallback.trap,
