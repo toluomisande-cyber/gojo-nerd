@@ -325,12 +325,12 @@ export default function AcademicWorkspace() {
       });
     }
 
-    // 6. Professor Trap Warning
+    // 6. Professor's Exam Insight
     const trapItem = items.find((it) =>
       /\b(not|never|only|solely|except|however|whereas|unlike|must|strictly|important|contrast|rather than)\b/i.test(it.text)
     ) || items[Math.min(1, items.length - 1)] || items[0];
 
-    const trap = `Professor Trap Warning [${trapItem && trapItem.slideNum ? `Slide ${trapItem.slideNum}` : 'Exam Nuance'}]: Pay strict attention to qualifiers and inverse conditions — "${trapItem ? trapItem.text : 'Examine causal direction carefully.'}"`;
+    const trap = `Key Exam Nuance [${trapItem && trapItem.slideNum ? `Slide ${trapItem.slideNum}` : 'Core Concept'}]: Professors frequently test qualifiers and causal directions on this mechanism — "${trapItem ? trapItem.text : 'Verify independent vs. dependent variables carefully.'}"`;
 
     // 7. Comprehensive Questions (12 to 18 MCQs spanning early, middle, and late slides)
     const questions: Question[] = [];
@@ -624,7 +624,7 @@ export default function AcademicWorkspace() {
         <div className="hidden md:flex items-center gap-4 text-white/90 font-mono text-[10px]">
           <span>SUMMARY SYNTHESIS</span>
           <span className="text-white/40">|</span>
-          <span>TRAP DETECTION</span>
+          <span>EXAM INSIGHTS</span>
           <span className="text-white/40">|</span>
           <span>ACTIVE RECALL</span>
           <span className="text-white/40">|</span>
@@ -762,7 +762,7 @@ export default function AcademicWorkspace() {
           <div className="hidden md:flex h-11 border-b border-[#E2E8F0] px-6 items-center justify-between bg-white shrink-0">
             <div className="flex items-center gap-6 h-full">
               {[
-                { id: "summary", label: "Executive Principles & Traps" },
+                { id: "summary", label: "Executive Principles & Insights" },
                 { id: "arena", label: "Active Recall Drills" },
                 { id: "cards", label: "Flashcards" },
                 { id: "chat", label: "Document Assistant" },
@@ -809,15 +809,18 @@ export default function AcademicWorkspace() {
                   </div>
                 </div>
 
-                {/* Trap Notice */}
-                <div className="border-l-4 border-[#991B1B] bg-red-50/60 p-5 rounded-r-lg border-y border-r border-red-100">
-                  <div className="flex items-center gap-2 text-[#991B1B] text-xs font-semibold font-mono uppercase tracking-wide">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    Professor Trap Warning
+                {/* High-Yield Exam Insight Callout */}
+                <div className="border-l-4 border-amber-500 bg-amber-50/70 p-4 sm:p-5 rounded-r-xl border-y border-r border-amber-200/80 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-amber-950 text-xs font-bold font-mono uppercase tracking-wide">
+                      <svg className="w-4 h-4 shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      <span>Professor's Exam Insight</span>
+                    </div>
+                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">KEY NUANCE</span>
                   </div>
-                  <p className="text-xs text-red-950 mt-2 leading-relaxed">{studyData.trap}</p>
+                  <p className="text-xs sm:text-[13px] text-amber-950/90 mt-2.5 leading-relaxed font-sans">{studyData.trap}</p>
                 </div>
 
                 {/* Non-Negotiable Mechanisms */}

@@ -255,11 +255,11 @@ module.exports = async function handler(req, res) {
     const promptParts = [...inlineParts];
     if (inlineParts.length > 0 && contentToAnalyze) {
       promptParts.push(
-        `Source: "${activeTitle}". Analyze the attached visual slide(s) AND the extracted document text below. Perform an end-to-end scan across all slides from beginning to end. Populate "extractedText" with a concise summary/transcription, and generate: 5 to 7 high-yield takeaways, 15 to 20 terms, 1 professor trap warning, ${targetQCount} multiple choice questions (spaced evenly from early, middle, and late slides), and ${targetCardCount} flashcards:\n\n"""\n${contentToAnalyze.slice(0, 65000)}\n"""`
+        `Source: "${activeTitle}". Analyze the attached visual slide(s) AND the extracted document text below. Perform an end-to-end scan across all slides from beginning to end. Populate "extractedText" with a concise summary/transcription, and generate: 5 to 7 high-yield takeaways, 15 to 20 terms, 1 professor exam insight, ${targetQCount} multiple choice questions (spaced evenly from early, middle, and late slides), and ${targetCardCount} flashcards:\n\n"""\n${contentToAnalyze.slice(0, 65000)}\n"""`
       );
     } else if (inlineParts.length > 0) {
       promptParts.push(
-        `Source: "${activeTitle}". Read all visible text, diagrams, and handwriting in the attached slide image(s). Populate "extractedText" with readable transcription, and generate: 5 to 7 high-yield takeaways, 12 to 16 terms, 1 professor trap warning, 10 to 12 multiple choice questions, and 12 to 15 flashcards.`
+        `Source: "${activeTitle}". Read all visible text, diagrams, and handwriting in the attached slide image(s). Populate "extractedText" with readable transcription, and generate: 5 to 7 high-yield takeaways, 12 to 16 terms, 1 professor exam insight, 10 to 12 multiple choice questions, and 12 to 15 flashcards.`
       );
     } else {
       promptParts.push(
@@ -288,7 +288,7 @@ NON-NEGOTIABLE QUANTITY & COVERAGE REQUIREMENTS:
 4. Generate 15 to 20 flashcards covering key terms, definitions, formulas, and mechanisms spanning the entire presentation.
 5. Generate 5 to 7 high-yield takeaways (pillars) summarizing the core structural pillars of the presentation.
 6. Generate 15 to 20 key vocabulary/nomenclature terms.
-7. Include 1 sharp Professor Trap Warning isolating confusing terminology, inverse relationships, or trick exceptions professors test on multiple choice.
+7. Include 1 sharp Professor's Exam Insight isolating confusing terminology, inverse relationships, or tricky distinctions professors test on multiple choice.
 
 Output must strictly match this JSON schema:
 {
@@ -297,7 +297,7 @@ Output must strictly match this JSON schema:
     { "num": "01", "concept": "Short Concept Name", "desc": "1-2 sentence core mechanism." }
   ],
   "terms": ["Term 1", "Term 2", "Term 3", "Term 4", "Term 5", "Term 6", "Term 7", "Term 8"],
-  "trap": "Direct 1-2 sentence warning about the primary trap professors use on this topic.",
+  "trap": "Direct 1-2 sentence high-yield exam insight highlighting the primary conceptual pitfall or tricky distinction professors test on this topic.",
   "questions": [
     {
       "q": "Sharp conceptual question spanning a specific slide or concept?",
