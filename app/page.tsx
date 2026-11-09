@@ -194,7 +194,7 @@ const initialPayload: StudyPayload = {
 
 export default function AcademicWorkspace() {
   // Navigation & State
-  const [activeTab, setActiveTab] = useState<"summary" | "arena" | "cards" | "chat">("summary");
+  const [activeTab, setActiveTab] = useState<"summary" | "arena" | "cards" | "chat" | "source">("summary");
   const [studyData, setStudyData] = useState<StudyPayload>(initialPayload);
   const [sourceText, setSourceText] = useState<string>("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -613,13 +613,13 @@ export default function AcademicWorkspace() {
   };
 
   return (
-    <div className="bg-[#F8F9FA] text-[#0F3470] font-sans antialiased h-screen flex flex-col overflow-hidden selection:bg-[#E4F1FF]">
+    <div className="bg-[#F8F9FA] text-[#0F3470] font-sans antialiased h-[100dvh] flex flex-col overflow-hidden selection:bg-[#E4F1FF]">
       
       {/* TOP ACCENT STATUS BAR (#0F3470) */}
-      <div className="bg-[#0F3470] text-white px-6 py-1.5 flex items-center justify-between text-[11px] shrink-0 select-none">
-        <div className="flex items-center gap-2 font-mono">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300" />
-          <span className="font-semibold tracking-wide">GOJO.NERD // AUTONOMOUS SYNTHESIS ENGINE</span>
+      <div className="bg-[#0F3470] text-white px-3 sm:px-6 py-1.5 flex items-center justify-between text-[11px] shrink-0 select-none">
+        <div className="flex items-center gap-2 font-mono min-w-0">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 shrink-0" />
+          <span className="font-semibold tracking-wide text-[10px] sm:text-[11px] truncate">GOJO.NERD // STUDY ENGINE</span>
         </div>
         <div className="hidden md:flex items-center gap-4 text-white/90 font-mono text-[10px]">
           <span>SUMMARY SYNTHESIS</span>
@@ -633,8 +633,8 @@ export default function AcademicWorkspace() {
       </div>
 
       {/* TOP MASTHEAD */}
-      <header className="h-14 border-b border-[#E2E8F0] bg-white px-6 flex items-center justify-between shrink-0 select-none text-xs">
-        <div className="flex items-center gap-4">
+      <header className="h-14 border-b border-[#E2E8F0] bg-white px-3 sm:px-6 flex items-center justify-between shrink-0 select-none text-xs gap-2">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           
           {/* Subtle Vector Convergence Emblem */}
           <div className="w-7 h-7 flex items-center justify-center shrink-0">
@@ -647,39 +647,55 @@ export default function AcademicWorkspace() {
             </svg>
           </div>
 
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-baseline gap-1.5 sm:gap-2 shrink-0">
             <span className="font-serif font-bold text-base text-[#0F3470] tracking-tight">Gojo</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-[#64748B] font-medium text-xs">Academic Syllabus &amp; Research Tool</span>
+            <span className="text-slate-300 hidden sm:inline">/</span>
+            <span className="text-[#64748B] font-medium text-xs hidden sm:inline">Academic Syllabus &amp; Research Tool</span>
           </div>
 
-          <div className="h-4 w-[1px] bg-[#E2E8F0] mx-2" />
+          <div className="h-4 w-[1px] bg-[#E2E8F0] mx-1 sm:mx-2 hidden sm:block" />
 
           {/* Active File Metadata */}
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#E4F1FF] border border-[#C5DFFF] font-mono text-[11px] text-[#0F3470]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="font-semibold">{studyData.filename}</span>
-            <span className="text-[#64748B]">(14.2 KB text)</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded bg-[#E4F1FF] border border-[#C5DFFF] font-mono text-[10px] sm:text-[11px] text-[#0F3470] min-w-0 max-w-[140px] sm:max-w-xs">
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span className="font-semibold truncate">{studyData.filename}</span>
+            <span className="text-[#64748B] hidden md:inline">(14.2 KB text)</span>
           </div>
         </div>
 
-        {/* Print / Export Action */}
-        <button
-          onClick={() => window.print()}
-          className="px-3 py-1.5 rounded border border-[#0F3470]/30 bg-[#E4F1FF]/60 hover:bg-[#0F3470] hover:text-white text-[#0F3470] transition-colors flex items-center gap-2 font-mono text-[11px] font-semibold shadow-sm"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-          </svg>
-          Print Study Syllabus
-        </button>
+        {/* Actions Area */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Mobile Quick Upload Action Button */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("source")}
+            className="md:hidden px-2.5 py-1.5 rounded border border-[#0F3470]/30 bg-[#E4F1FF]/70 active:bg-[#0F3470] active:text-white text-[#0F3470] flex items-center gap-1.5 font-mono text-[11px] font-semibold transition-colors"
+          >
+            <svg className="w-3.5 h-3.5 text-[#0F3470]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span>Upload</span>
+          </button>
+
+          {/* Print / Export Action */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="hidden sm:flex px-3 py-1.5 rounded border border-[#0F3470]/30 bg-[#E4F1FF]/60 hover:bg-[#0F3470] hover:text-white text-[#0F3470] transition-colors items-center gap-2 font-mono text-[11px] font-semibold shadow-sm"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Print Study Syllabus
+          </button>
+        </div>
       </header>
 
       {/* MAIN SPLIT PANE */}
       <div className="flex-1 flex overflow-hidden">
         
-        {/* LEFT PANE: SOURCE TEXT EXPLORER */}
-        <aside className="w-80 md:w-96 border-r border-[#E2E8F0] bg-white flex flex-col shrink-0">
+        {/* LEFT PANE: SOURCE TEXT EXPLORER (Desktop Only; on mobile it's an app tab) */}
+        <aside className="hidden md:flex md:w-80 lg:w-96 border-r border-[#E2E8F0] bg-white flex-col shrink-0">
           <div className="p-4 border-b border-[#E2E8F0] bg-[#E4F1FF]/40">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-mono uppercase tracking-wider text-[#0F3470] font-bold">Source Material</span>
@@ -742,8 +758,8 @@ export default function AcademicWorkspace() {
         {/* RIGHT PANE: ACADEMIC WORKSPACE */}
         <main className="flex-1 flex flex-col bg-[#F8F9FA] overflow-hidden">
           
-          {/* TAB STRIP */}
-          <div className="h-11 border-b border-[#E2E8F0] px-6 flex items-center justify-between bg-white shrink-0">
+          {/* TAB STRIP (Desktop Only) */}
+          <div className="hidden md:flex h-11 border-b border-[#E2E8F0] px-6 items-center justify-between bg-white shrink-0">
             <div className="flex items-center gap-6 h-full">
               {[
                 { id: "summary", label: "Executive Principles & Traps" },
@@ -771,7 +787,7 @@ export default function AcademicWorkspace() {
           </div>
 
           {/* ACTIVE TAB CONTENT */}
-          <div className="flex-1 overflow-y-auto p-8 space-y-6">
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 md:p-8 pb-24 md:pb-8 space-y-5 sm:space-y-6">
             
             {/* 1. SUMMARY VIEW */}
             {activeTab === "summary" && (
@@ -959,9 +975,9 @@ export default function AcademicWorkspace() {
 
             {/* 3. FLASHCARDS VIEW */}
             {activeTab === "cards" && (
-              <div className="max-w-md mx-auto pt-6">
+              <div className="max-w-md mx-auto pt-2 sm:pt-6">
                 <div
-                  className="perspective-1000 w-full h-72 cursor-pointer select-none"
+                  className="perspective-1000 w-full h-72 sm:h-80 cursor-pointer select-none"
                   onClick={() => setIsFlipped((prev) => !prev)}
                 >
                   <div
@@ -970,57 +986,65 @@ export default function AcademicWorkspace() {
                     }`}
                   >
                     {/* Front */}
-                    <div className="absolute inset-0 w-full h-full rounded-xl bg-white border border-[#CBD5E1] backface-hidden p-8 flex flex-col justify-between shadow-sm">
+                    <div className="absolute inset-0 w-full h-full rounded-2xl bg-white border border-[#CBD5E1] backface-hidden p-6 sm:p-8 flex flex-col justify-between shadow-sm">
                       <div className="flex justify-between items-center text-[10px] font-mono text-[#64748B]">
                         <span className="uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-[#E4F1FF] text-[#0F3470]">Vocabulary</span>
-                        <span>Front</span>
+                        <span>Front • Tap to Flip</span>
                       </div>
-                      <div className="text-center my-auto">
-                        <h3 className="text-2xl font-serif font-bold text-[#0F3470] tracking-tight">
-                          {studyData.cards[currentCardIndex].term}
+                      <div className="text-center my-auto px-2">
+                        <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#0F3470] tracking-tight break-words">
+                          {studyData.cards[currentCardIndex]?.term || "Key Term"}
                         </h3>
-                        <p className="text-xs text-[#64748B] mt-2 font-mono">Click to flip card</p>
+                        <p className="text-[11px] text-[#64748B] mt-2 font-mono">Tap anywhere on card to flip</p>
                       </div>
-                      <div className="text-right text-[10px] font-mono text-[#0F3470] font-semibold">Flip Card &rarr;</div>
+                      <div className="text-right text-[11px] font-mono text-[#0F3470] font-semibold flex items-center justify-end gap-1">
+                        <span>Reveal Definition</span>
+                        <span>&rarr;</span>
+                      </div>
                     </div>
 
                     {/* Back */}
-                    <div className="absolute inset-0 w-full h-full rounded-xl bg-[#0F3470] border border-[#0F3470] text-white backface-hidden rotate-y-180 p-8 flex flex-col justify-between shadow-md">
-                      <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                    <div className="absolute inset-0 w-full h-full rounded-2xl bg-[#0F3470] border border-[#0F3470] text-white backface-hidden rotate-y-180 p-6 sm:p-8 flex flex-col justify-between shadow-md">
+                      <div className="flex justify-between items-center text-[10px] font-mono text-slate-300">
                         <span className="uppercase tracking-widest text-[#93C5FD] font-semibold">Mechanism</span>
-                        <span>Back</span>
+                        <span>Back • Tap to Return</span>
                       </div>
-                      <div className="my-auto">
-                        <p className="text-sm text-slate-200 leading-relaxed font-sans">
-                          {studyData.cards[currentCardIndex].def}
+                      <div className="my-auto overflow-y-auto max-h-[160px] pr-1">
+                        <p className="text-xs sm:text-sm text-white leading-relaxed font-sans">
+                          {studyData.cards[currentCardIndex]?.def || "Definition extracted from uploaded material."}
                         </p>
                       </div>
-                      <div className="text-right text-[10px] font-mono text-[#93C5FD]">Return &rarr;</div>
+                      <div className="text-right text-[11px] font-mono text-[#93C5FD] flex items-center justify-end gap-1">
+                        <span>Return Front</span>
+                        <span>&rarr;</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-5">
+                <div className="flex items-center justify-between mt-5 gap-3">
                   <button
+                    type="button"
                     onClick={() => {
                       setIsFlipped(false);
                       setCurrentCardIndex((prev) => (prev - 1 + studyData.cards.length) % studyData.cards.length);
                     }}
-                    className="px-4 py-1.5 rounded bg-white border border-[#E2E8F0] text-xs font-mono text-[#0F3470] hover:bg-[#E4F1FF] transition-colors"
+                    className="flex-1 py-3 px-4 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono font-semibold text-[#0F3470] hover:bg-[#E4F1FF] active:bg-slate-100 transition-colors shadow-sm flex items-center justify-center gap-1 min-h-[44px]"
                   >
-                    Previous
+                    &larr; Prev Card
                   </button>
-                  <span className="text-xs font-mono text-[#64748B]">
+                  <span className="text-xs font-mono font-semibold text-[#64748B] px-2 shrink-0">
                     CARD {String(currentCardIndex + 1).padStart(2, "0")} // {String(studyData.cards.length).padStart(2, "0")}
                   </span>
                   <button
+                    type="button"
                     onClick={() => {
                       setIsFlipped(false);
                       setCurrentCardIndex((prev) => (prev + 1) % studyData.cards.length);
                     }}
-                    className="px-4 py-1.5 rounded bg-[#0F3470] text-xs font-mono text-white hover:bg-[#0F3470] transition-colors"
+                    className="flex-1 py-3 px-4 rounded-xl bg-[#0F3470] text-xs font-mono font-semibold text-white hover:opacity-95 active:scale-[0.99] transition-all shadow-sm flex items-center justify-center gap-1 min-h-[44px]"
                   >
-                    Next
+                    Next Card &rarr;
                   </button>
                 </div>
               </div>
@@ -1029,20 +1053,20 @@ export default function AcademicWorkspace() {
             {/* 4. DOCUMENT ASSISTANT (CHAT) */}
             {activeTab === "chat" && (
               <div className="max-w-2xl space-y-4">
-                <div className="bg-white border border-[#E2E8F0] rounded-lg h-[460px] flex flex-col shadow-sm overflow-hidden">
-                  <div className="p-3.5 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-[#0F3470] text-white">
+                <div className="bg-white border border-[#E2E8F0] rounded-xl h-[calc(100dvh-200px)] md:h-[460px] flex flex-col shadow-sm overflow-hidden">
+                  <div className="p-3.5 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-[#0F3470] text-white shrink-0">
                     <span className="font-mono font-semibold">Gojo // Document In-Depth Assistant</span>
-                    <span className="text-[10px] font-mono text-[#93C5FD]">Strictly bound to uploaded context</span>
+                    <span className="text-[10px] font-mono text-[#93C5FD]">Grounded in your document</span>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs leading-relaxed">
+                  <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs leading-relaxed">
                     {chatMessages.map((msg, idx) => (
                       <div
                         key={idx}
                         className={`p-3.5 rounded-lg border ${
                           msg.role === "user"
-                            ? "bg-[#E4F1FF]/60 border-[#C5DFFF] text-[#0F3470] ml-8"
-                            : "bg-white border-[#E2E8F0] text-[#0F3470] shadow-sm mr-8"
+                            ? "bg-[#E4F1FF]/60 border-[#C5DFFF] text-[#0F3470] ml-6 sm:ml-8"
+                            : "bg-white border-[#E2E8F0] text-[#0F3470] shadow-sm mr-6 sm:mr-8"
                         }`}
                       >
                         <span
@@ -1052,26 +1076,108 @@ export default function AcademicWorkspace() {
                         >
                           {msg.role === "user" ? "USER QUERY" : "GOJO // RESEARCH PARTNER"}
                         </span>
-                        <p>{msg.content}</p>
+                        <p className="leading-relaxed">{msg.content}</p>
                       </div>
                     ))}
                   </div>
 
-                  <form onSubmit={handleSendMessage} className="p-3 border-t border-[#E2E8F0] flex gap-2 bg-white">
+                  <form onSubmit={handleSendMessage} className="p-2.5 sm:p-3 border-t border-[#E2E8F0] flex gap-2 bg-white shrink-0">
                     <input
                       type="text"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Ask a clarifying conceptual question..."
-                      className="flex-1 bg-[#F8F9FA] border border-[#E2E8F0] rounded px-3 py-2 text-xs text-[#0F3470] placeholder:text-[#64748B] focus:outline-none focus:border-[#0F3470] font-sans"
+                      placeholder="Ask about concepts, steps, or mechanisms..."
+                      className="flex-1 bg-[#F8F9FA] border border-[#E2E8F0] rounded-lg px-3 py-2.5 text-xs text-[#0F3470] placeholder:text-[#64748B] focus:outline-none focus:border-[#0F3470] font-sans min-h-[44px]"
                     />
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded bg-[#0F3470] hover:bg-[#0F3470] text-white font-semibold text-xs transition-colors"
+                      className="px-4 sm:px-5 py-2.5 rounded-lg bg-[#0F3470] hover:opacity-95 text-white font-semibold text-xs transition-opacity shrink-0 min-h-[44px]"
                     >
-                      Submit
+                      Send
                     </button>
                   </form>
+                </div>
+              </div>
+            )}
+
+            {/* 5. SOURCE & UPLOAD VIEW (Mobile App View) */}
+            {activeTab === "source" && (
+              <div className="max-w-xl mx-auto space-y-4">
+                {/* Mobile Header Card */}
+                <div className="bg-[#0F3470] text-white rounded-xl p-4 sm:p-5 shadow-sm border-l-4 border-[#93C5FD]">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#93C5FD] font-semibold block">
+                    SOURCE MATERIAL // SLIDES &amp; NOTES
+                  </span>
+                  <h2 className="text-sm sm:text-base font-serif font-bold mt-1 text-white">
+                    Import Lecture Slides, Photos, or Notes
+                  </h2>
+                  <p className="text-xs text-white/80 font-sans mt-1 leading-relaxed">
+                    Upload PDF lecture decks (all slides are scanned), take photos of physical slide screens, or paste notes.
+                  </p>
+                </div>
+
+                {/* Upload Dropzone Card */}
+                <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono uppercase tracking-wider text-[#0F3470] font-bold">1. Select Document or Photo</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#E4F1FF] text-[#0F3470] font-semibold border border-[#C5DFFF]">PDF • Image • Text</span>
+                  </div>
+
+                  <div className="relative border-2 border-dashed border-[#0F3470]/40 hover:border-[#0F3470] active:bg-[#E4F1FF]/20 rounded-xl p-5 text-center bg-white cursor-pointer transition-colors min-h-[120px] flex items-center justify-center">
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.txt,.md,.csv,image/*,application/pdf,text/plain"
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
+                      onChange={handleFileUpload}
+                    />
+                    <div className="flex flex-col items-center justify-center gap-1.5 text-[#0F3470]">
+                      <div className="w-10 h-10 rounded-full bg-[#E4F1FF] flex items-center justify-center text-[#0F3470]">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="font-bold text-xs sm:text-sm block">Tap to Select File or Snap Photo</span>
+                        <span className="text-[10px] sm:text-xs text-[#64748B] font-mono">PDF, slide screenshots, or notes</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes Buffer & Synthesize Button Card */}
+                <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="font-bold text-[#0F3470]">2. Source Notes Buffer</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSourceText(
+                          `Cellular Respiration and ATP Generation:\nGlycolysis occurs in the cytoplasm and breaks glucose into 2 pyruvate molecules, yielding a net of 2 ATP and 2 NADH without requiring oxygen. The Krebs Cycle occurs in the mitochondrial matrix, processing Acetyl-CoA to produce NADH and FADH2. The Electron Transport Chain (ETC) sits in the inner membrane and generates the vast majority of cellular ATP via oxidative phosphorylation and the ATP Synthase proton gradient.\nOxygen acts strictly as the final electron acceptor at Complex IV. Without oxygen, oxidative phosphorylation halts, and cells must rely on anaerobic fermentation.`
+                        )
+                      }
+                      className="text-[#0F3470] hover:underline font-semibold"
+                    >
+                      Load Sample
+                    </button>
+                  </div>
+
+                  <textarea
+                    value={sourceText}
+                    onChange={(e) => setSourceText(e.target.value)}
+                    placeholder="Or paste lecture excerpts, notes, or readings here..."
+                    rows={5}
+                    className="w-full bg-[#F8F9FA] border border-[#E2E8F0] rounded-lg p-3 text-xs font-mono text-[#0F3470] placeholder:text-slate-400 focus:outline-none focus:border-[#0F3470] resize-y leading-relaxed"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleSynthesize}
+                    disabled={isSynthesizing}
+                    className="w-full h-12 rounded-xl bg-[#0F3470] active:scale-[0.99] hover:opacity-95 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-60"
+                  >
+                    <span>{isSynthesizing ? "Synthesizing Canvas..." : "Synthesize Study Canvas"}</span>
+                    <span className="font-mono text-base">&rarr;</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -1080,6 +1186,36 @@ export default function AcademicWorkspace() {
         </main>
 
       </div>
+
+      {/* MOBILE APP BOTTOM NAVIGATION BAR (Phones & Tablets < 768px) */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-[#E2E8F0] flex md:hidden items-stretch justify-around z-50 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        {[
+          { id: "summary", label: "Summary", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+          { id: "arena", label: "Drills", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
+          { id: "cards", label: "Cards", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
+          { id: "chat", label: "Sensei", icon: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" },
+          { id: "source", label: "Upload", icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" },
+        ].map((item) => {
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveTab(item.id as any)}
+              className={`flex-1 flex flex-col items-center justify-center py-1 transition-colors ${
+                isActive
+                  ? "text-[#0F3470] font-bold relative after:content-[''] after:absolute after:top-0 after:w-8 after:h-0.5 after:bg-[#0F3470] after:rounded-full"
+                  : "text-[#64748B] hover:text-[#0F3470] font-medium"
+              }`}
+            >
+              <svg className="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+              </svg>
+              <span className="text-[10px] font-mono tracking-tight">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

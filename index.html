@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#0F3470" />
   <title>Gojo / Academic Syllabus &amp; Research Tool</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,13 +83,13 @@
   </style>
 </head>
 
-<body class="bg-brandCanvas text-brandNavy font-sans antialiased h-screen flex flex-col overflow-hidden selection:bg-brandSky selection:text-brandNavy">
+<body class="bg-brandCanvas text-brandNavy font-sans antialiased h-[100dvh] flex flex-col overflow-hidden selection:bg-brandSky selection:text-brandNavy">
   
   <!-- TOP ACCENT STATUS BAR (#0F3470) -->
-  <div id="top-accent-bar" class="bg-brandIndigo text-white px-6 py-1.5 flex items-center justify-between text-[11px] shrink-0 select-none">
-    <div class="flex items-center gap-2 font-mono">
-      <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300"></span>
-      <span class="font-semibold tracking-wide">GOJO.NERD // AUTONOMOUS SYNTHESIS ENGINE</span>
+  <div id="top-accent-bar" class="bg-brandIndigo text-white px-3 sm:px-6 py-1.5 flex items-center justify-between text-[11px] shrink-0 select-none">
+    <div class="flex items-center gap-2 font-mono min-w-0">
+      <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 shrink-0"></span>
+      <span class="font-semibold tracking-wide text-[10px] sm:text-[11px] truncate">GOJO.NERD // STUDY ENGINE</span>
     </div>
     <div class="hidden md:flex items-center gap-4 text-white/90 font-mono text-[10px]">
       <span>SUMMARY SYNTHESIS</span>
@@ -100,8 +103,8 @@
   </div>
 
   <!-- TOP MASTHEAD -->
-  <header class="h-14 border-b border-[#E2E8F0] bg-white px-6 flex items-center justify-between shrink-0 select-none text-xs">
-    <div class="flex items-center gap-4">
+  <header class="h-14 border-b border-[#E2E8F0] bg-white px-3 sm:px-6 flex items-center justify-between shrink-0 select-none text-xs gap-2">
+    <div class="flex items-center gap-2 sm:gap-4 min-w-0">
       
       <!-- Subtle Vector Convergence Emblem -->
       <div class="w-7 h-7 flex items-center justify-center shrink-0">
@@ -114,39 +117,55 @@
         </svg>
       </div>
 
-      <div class="flex items-baseline gap-2">
+      <div class="flex items-baseline gap-1.5 sm:gap-2 shrink-0">
         <span class="font-serif font-bold text-base text-brandNavy tracking-tight">Gojo</span>
-        <span class="text-slate-300">/</span>
-        <span class="text-[#64748B] font-medium text-xs">Academic Syllabus &amp; Research Tool</span>
+        <span class="text-slate-300 hidden sm:inline">/</span>
+        <span class="text-[#64748B] font-medium text-xs hidden sm:inline">Academic Syllabus &amp; Research Tool</span>
       </div>
 
-      <div class="h-4 w-[1px] bg-[#E2E8F0] mx-2"></div>
+      <div class="h-4 w-[1px] bg-[#E2E8F0] mx-1 sm:mx-2 hidden sm:block"></div>
 
       <!-- Active File Metadata -->
-      <div class="flex items-center gap-2 px-2.5 py-1 rounded bg-brandSky border border-[#C5DFFF] font-mono text-[11px] text-brandNavy">
-        <span id="masthead-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span id="masthead-filename" class="font-semibold">Cellular_Respiration_Core.pdf</span>
-        <span id="masthead-filesize" class="text-[#64748B]">(14.2 KB text)</span>
+      <div class="flex items-center gap-1.5 sm:gap-2 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded bg-brandSky border border-[#C5DFFF] font-mono text-[10px] sm:text-[11px] text-brandNavy min-w-0 max-w-[140px] sm:max-w-xs">
+        <span id="masthead-dot" class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 shrink-0"></span>
+        <span id="masthead-filename" class="font-semibold truncate">Cellular_Respiration_Core.pdf</span>
+        <span id="masthead-filesize" class="text-[#64748B] hidden md:inline">(14.2 KB text)</span>
       </div>
     </div>
 
-    <!-- Print / Export Action -->
-    <button
-      onclick="handlePrint()"
-      class="px-3 py-1.5 rounded border border-brandIndigo/30 bg-brandSky/60 hover:bg-brandIndigo hover:text-white text-brandNavy transition-colors flex items-center gap-2 font-mono text-[11px] font-semibold shadow-sm"
-    >
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-      </svg>
-      Print Study Syllabus
-    </button>
+    <!-- Actions Area -->
+    <div class="flex items-center gap-2 shrink-0">
+      <!-- Mobile Quick Upload Action Button -->
+      <button
+        type="button"
+        onclick="setActiveTab('source')"
+        class="md:hidden px-2.5 py-1.5 rounded border border-brandIndigo/30 bg-brandSky/70 active:bg-brandIndigo active:text-white text-brandNavy flex items-center gap-1.5 font-mono text-[11px] font-semibold transition-colors"
+      >
+        <svg class="w-3.5 h-3.5 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <span>Upload</span>
+      </button>
+
+      <!-- Print / Export Action -->
+      <button
+        type="button"
+        onclick="handlePrint()"
+        class="hidden sm:flex px-3 py-1.5 rounded border border-brandIndigo/30 bg-brandSky/60 hover:bg-brandIndigo hover:text-white text-brandNavy transition-colors items-center gap-2 font-mono text-[11px] font-semibold shadow-sm"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+        </svg>
+        Print Study Syllabus
+      </button>
+    </div>
   </header>
 
   <!-- MAIN SPLIT PANE -->
   <div class="flex-1 flex overflow-hidden">
     
-    <!-- LEFT PANE: SOURCE TEXT EXPLORER -->
-    <aside class="w-80 md:w-96 border-r border-[#E2E8F0] bg-white flex flex-col shrink-0">
+    <!-- LEFT PANE: SOURCE TEXT EXPLORER (Desktop Only; on mobile it's an app tab) -->
+    <aside class="hidden md:flex md:w-80 lg:w-96 border-r border-[#E2E8F0] bg-white flex-col shrink-0">
       <div class="p-4 border-b border-[#E2E8F0] bg-brandSky/40">
         <div class="flex items-center justify-between mb-2">
           <span class="text-[11px] font-mono uppercase tracking-wider text-brandNavy font-bold">Source Material</span>
@@ -228,8 +247,8 @@
     <!-- RIGHT PANE: ACADEMIC WORKSPACE -->
     <main class="flex-1 flex flex-col bg-brandCanvas overflow-hidden">
       
-      <!-- TAB STRIP -->
-      <div id="tab-strip" class="h-11 border-b border-[#E2E8F0] px-6 flex items-center justify-between bg-white shrink-0">
+      <!-- TAB STRIP (Desktop Only) -->
+      <div id="tab-strip" class="hidden md:flex h-11 border-b border-[#E2E8F0] px-6 items-center justify-between bg-white shrink-0">
         <div class="flex items-center gap-6 h-full">
           <button
             id="tab-btn-summary"
@@ -267,31 +286,31 @@
       </div>
 
       <!-- ACTIVE TAB CONTENT -->
-      <div id="active-tab-container" class="flex-1 overflow-y-auto p-8 space-y-6">
+      <div id="active-tab-container" class="flex-1 overflow-y-auto p-3.5 sm:p-6 md:p-8 pb-24 md:pb-8 space-y-5 sm:space-y-6">
         
         <!-- 1. SUMMARY VIEW -->
-        <div id="view-summary" class="max-w-3xl space-y-6">
+        <div id="view-summary" class="max-w-3xl space-y-5 sm:space-y-6">
           
           <!-- Deep Navy Header Card (#0F3470) -->
-          <div class="bg-brandNavy text-white rounded-lg p-5 shadow-sm flex items-center justify-between border-l-4 border-[#93C5FD]">
-            <div>
+          <div class="bg-brandNavy text-white rounded-xl p-4 sm:p-5 shadow-sm flex items-center justify-between border-l-4 border-[#93C5FD]">
+            <div class="min-w-0 pr-2">
               <span class="text-[10px] font-mono uppercase tracking-widest text-[#93C5FD] font-semibold block">
                 EXECUTIVE SYNTHESIS // HIGH-YIELD CORE
               </span>
-              <h2 id="banner-course-title" class="text-base font-serif font-bold mt-0.5">
+              <h2 id="banner-course-title" class="text-sm sm:text-base font-serif font-bold mt-0.5 truncate">
                 Cellular_Respiration_Core.pdf
               </h2>
             </div>
-            <div class="text-right font-mono text-[11px] text-white/80 hidden sm:block">
+            <div class="text-right font-mono text-[10px] sm:text-[11px] text-white/80 shrink-0">
               <div>PILLARS: <strong id="banner-pillars-num" class="text-white">03</strong></div>
               <div>STATUS: <strong id="banner-status-text" class="text-emerald-400">VERIFIED</strong></div>
             </div>
           </div>
 
           <!-- Trap Notice -->
-          <div class="border-l-4 border-[#991B1B] bg-red-50/60 p-5 rounded-r-lg border-y border-r border-red-100">
+          <div class="border-l-4 border-[#991B1B] bg-red-50/70 p-4 sm:p-5 rounded-r-xl border-y border-r border-red-100 shadow-sm">
             <div class="flex items-center gap-2 text-[#991B1B] text-xs font-semibold font-mono uppercase tracking-wide">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               Professor Trap Warning
@@ -300,8 +319,8 @@
           </div>
 
           <!-- Non-Negotiable Mechanisms -->
-          <div class="bg-white border border-[#E2E8F0] rounded-lg shadow-sm overflow-hidden">
-            <div class="px-5 py-3 border-b border-[#E2E8F0] flex justify-between items-center bg-brandSky/45">
+          <div class="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">
+            <div class="px-4 sm:px-5 py-3 border-b border-[#E2E8F0] flex justify-between items-center bg-brandSky/45">
               <span class="text-xs font-bold text-brandNavy font-mono uppercase tracking-wide">01 // Non-Negotiable Mechanisms</span>
               <span id="summary-pillars-count" class="text-[11px] font-mono text-brandIndigo font-semibold">3 High-Yield Pillars</span>
             </div>
@@ -309,7 +328,7 @@
           </div>
 
           <!-- Vocabulary Cloud -->
-          <div class="bg-white border border-[#E2E8F0] rounded-lg p-5 shadow-sm">
+          <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm">
             <span class="text-xs font-bold text-brandNavy font-mono uppercase tracking-wide block mb-3">02 // Essential Nomenclature</span>
             <div id="summary-terms" class="flex flex-wrap gap-2"></div>
           </div>
@@ -319,9 +338,9 @@
         <div id="view-arena" class="hidden max-w-2xl space-y-4"></div>
 
         <!-- 3. FLASHCARDS VIEW -->
-        <div id="view-cards" class="hidden max-w-md mx-auto pt-6">
+        <div id="view-cards" class="hidden max-w-md mx-auto pt-2 sm:pt-6">
           <div
-            class="perspective-1000 w-full h-72 cursor-pointer select-none"
+            class="perspective-1000 w-full h-72 sm:h-80 cursor-pointer select-none"
             onclick="toggleFlipCard()"
           >
             <div
@@ -329,77 +348,178 @@
               class="relative w-full h-full duration-300 transform-style-3d transition-transform"
             >
               <!-- Front -->
-              <div class="absolute inset-0 w-full h-full rounded-xl bg-white border border-[#CBD5E1] backface-hidden p-8 flex flex-col justify-between shadow-sm">
+              <div class="absolute inset-0 w-full h-full rounded-2xl bg-white border border-[#CBD5E1] backface-hidden p-6 sm:p-8 flex flex-col justify-between shadow-sm">
                 <div class="flex justify-between items-center text-[10px] font-mono text-[#64748B]">
                   <span class="uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-brandSky text-brandIndigo">Vocabulary</span>
-                  <span>Front</span>
+                  <span>Front • Tap to Flip</span>
                 </div>
-                <div class="text-center my-auto">
-                  <h3 id="flashcard-term" class="text-2xl font-serif font-bold text-brandNavy tracking-tight"></h3>
-                  <p class="text-xs text-[#64748B] mt-2 font-mono">Click to flip card</p>
+                <div class="text-center my-auto px-2">
+                  <h3 id="flashcard-term" class="text-xl sm:text-2xl font-serif font-bold text-brandNavy tracking-tight break-words"></h3>
+                  <p class="text-[11px] text-[#64748B] mt-2 font-mono">Tap anywhere on card to flip</p>
                 </div>
-                <div class="text-right text-[10px] font-mono text-brandIndigo font-semibold">Flip Card &rarr;</div>
+                <div class="text-right text-[11px] font-mono text-brandIndigo font-semibold flex items-center justify-end gap-1">
+                  <span>Reveal Definition</span>
+                  <span>&rarr;</span>
+                </div>
               </div>
 
               <!-- Back (#0F3470 Deep Blue) -->
-              <div class="absolute inset-0 w-full h-full rounded-xl bg-brandNavy border border-brandIndigo text-white backface-hidden rotate-y-180 p-8 flex flex-col justify-between shadow-md">
+              <div class="absolute inset-0 w-full h-full rounded-2xl bg-brandNavy border border-brandIndigo text-white backface-hidden rotate-y-180 p-6 sm:p-8 flex flex-col justify-between shadow-md">
                 <div class="flex justify-between items-center text-[10px] font-mono text-slate-300">
                   <span class="uppercase tracking-widest text-[#93C5FD] font-semibold">Mechanism</span>
-                  <span>Back</span>
+                  <span>Back • Tap to Return</span>
                 </div>
-                <div class="my-auto">
-                  <p id="flashcard-def" class="text-sm text-white leading-relaxed font-sans"></p>
+                <div class="my-auto overflow-y-auto max-h-[160px] pr-1">
+                  <p id="flashcard-def" class="text-xs sm:text-sm text-white leading-relaxed font-sans"></p>
                 </div>
-                <div class="text-right text-[10px] font-mono text-[#93C5FD]">Return &rarr;</div>
+                <div class="text-right text-[11px] font-mono text-[#93C5FD] flex items-center justify-end gap-1">
+                  <span>Return Front</span>
+                  <span>&rarr;</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="flex items-center justify-between mt-5">
+          <div class="flex items-center justify-between mt-5 gap-3">
             <button
               type="button"
               onclick="prevFlashcard()"
-              class="px-4 py-1.5 rounded bg-white border border-[#E2E8F0] text-xs font-mono text-brandNavy hover:bg-brandSky transition-colors"
+              class="flex-1 py-3 px-4 rounded-xl bg-white border border-[#E2E8F0] text-xs font-mono font-semibold text-brandNavy hover:bg-brandSky active:bg-slate-100 transition-colors shadow-sm flex items-center justify-center gap-1 min-h-[44px]"
             >
-              Previous
+              &larr; Prev Card
             </button>
-            <span id="flashcard-counter" class="text-xs font-mono text-[#64748B]">
+            <span id="flashcard-counter" class="text-xs font-mono font-semibold text-[#64748B] px-2 shrink-0">
               CARD 01 // 05
             </span>
             <button
               type="button"
               onclick="nextFlashcard()"
-              class="px-4 py-1.5 rounded bg-brandIndigo text-xs font-mono text-white hover:opacity-95 transition-opacity"
+              class="flex-1 py-3 px-4 rounded-xl bg-brandIndigo text-xs font-mono font-semibold text-white hover:opacity-95 active:scale-[0.99] transition-all shadow-sm flex items-center justify-center gap-1 min-h-[44px]"
             >
-              Next
+              Next Card &rarr;
             </button>
           </div>
         </div>
 
         <!-- 4. DOCUMENT ASSISTANT (CHAT) -->
         <div id="view-chat" class="hidden max-w-2xl space-y-4">
-          <div class="bg-white border border-[#E2E8F0] rounded-lg h-[460px] flex flex-col shadow-sm overflow-hidden">
-            <div class="p-3.5 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-brandNavy text-white">
+          <div class="bg-white border border-[#E2E8F0] rounded-xl h-[calc(100dvh-200px)] md:h-[460px] flex flex-col shadow-sm overflow-hidden">
+            <div class="p-3.5 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-brandNavy text-white shrink-0">
               <span class="font-mono font-semibold">Gojo // Document In-Depth Assistant</span>
-              <span class="text-[10px] font-mono text-[#93C5FD]">Strictly bound to uploaded context</span>
+              <span class="text-[10px] font-mono text-[#93C5FD]">Grounded in your document</span>
             </div>
 
-            <div id="chat-messages-box" class="flex-1 overflow-y-auto p-5 space-y-4 text-xs leading-relaxed"></div>
+            <div id="chat-messages-box" class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs leading-relaxed"></div>
 
-            <form onsubmit="handleSendMessage(event)" class="p-3 border-t border-[#E2E8F0] flex gap-2 bg-white">
+            <form onsubmit="handleSendMessage(event)" class="p-2.5 sm:p-3 border-t border-[#E2E8F0] flex gap-2 bg-white shrink-0">
               <input
                 type="text"
                 id="chat-input-field"
-                placeholder="Ask a clarifying conceptual question..."
-                class="flex-1 bg-[#F8F9FA] border border-[#E2E8F0] rounded px-3 py-2 text-xs text-brandNavy placeholder:text-[#64748B] focus:outline-none focus:border-brandIndigo font-sans"
+                placeholder="Ask about concepts, steps, or mechanisms..."
+                class="flex-1 bg-[#F8F9FA] border border-[#E2E8F0] rounded-lg px-3 py-2.5 text-xs text-brandNavy placeholder:text-[#64748B] focus:outline-none focus:border-brandIndigo font-sans min-h-[44px]"
               />
               <button
                 type="submit"
-                class="px-4 py-2 rounded bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs transition-opacity"
+                class="px-4 sm:px-5 py-2.5 rounded-lg bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs transition-opacity shrink-0 min-h-[44px]"
               >
-                Submit
+                Send
               </button>
             </form>
+          </div>
+        </div>
+
+        <!-- 5. SOURCE & UPLOAD VIEW (Mobile App View) -->
+        <div id="view-source" class="hidden max-w-xl mx-auto space-y-4">
+          <!-- Mobile Header Card -->
+          <div class="bg-brandNavy text-white rounded-xl p-4 sm:p-5 shadow-sm border-l-4 border-[#93C5FD]">
+            <span class="text-[10px] font-mono uppercase tracking-widest text-[#93C5FD] font-semibold block">
+              SOURCE MATERIAL // SLIDES &amp; NOTES
+            </span>
+            <h2 class="text-sm sm:text-base font-serif font-bold mt-1 text-white">
+              Import Lecture Slides, Photos, or Notes
+            </h2>
+            <p class="text-xs text-white/80 font-sans mt-1 leading-relaxed">
+              Upload PDF lecture decks (all slides are scanned), take photos of physical slide screens, or paste notes.
+            </p>
+          </div>
+
+          <!-- Upload Dropzone Card -->
+          <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-mono uppercase tracking-wider text-brandNavy font-bold">1. Select Document or Photo</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-brandSky text-brandIndigo font-semibold border border-[#C5DFFF]">PDF • Image • Text</span>
+            </div>
+
+            <div class="relative border-2 border-dashed border-brandIndigo/40 hover:border-brandIndigo active:bg-brandSky/20 rounded-xl p-5 text-center bg-white cursor-pointer transition-colors min-h-[120px] flex items-center justify-center">
+              <input
+                type="file"
+                id="file-upload-input-mobile"
+                accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.txt,.md,.csv,image/*,application/pdf,text/plain"
+                class="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
+                onchange="handleFileUpload(event)"
+              />
+              <div class="flex flex-col items-center justify-center gap-1.5 text-brandNavy">
+                <div class="w-10 h-10 rounded-full bg-brandSky flex items-center justify-center text-brandIndigo">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <div>
+                  <span id="mobile-upload-box-title" class="font-bold text-xs sm:text-sm block">Tap to Select File or Snap Photo</span>
+                  <span id="mobile-upload-box-subtitle" class="text-[10px] sm:text-xs text-[#64748B] font-mono">PDF, slide screenshots, or notes</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Uploaded Image / Slide Thumbnail Preview (Mobile) -->
+            <div id="mobile-image-preview-box" class="hidden p-2.5 rounded-lg bg-brandSky/30 border border-[#C5DFFF] flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <img id="mobile-image-preview-thumb" src="" alt="Uploaded preview" class="w-11 h-11 object-cover rounded-md border border-[#E2E8F0] shrink-0" />
+                <div class="min-w-0">
+                  <div id="mobile-image-preview-name" class="text-xs font-semibold text-brandNavy truncate">slide.png</div>
+                  <div id="mobile-image-preview-meta" class="text-[10px] font-mono text-[#64748B]">Ready for AI Vision</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onclick="clearUploadedImage()"
+                class="text-xs font-mono px-2.5 py-1.5 rounded bg-red-50 text-red-700 hover:bg-red-100 shrink-0 font-semibold"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <!-- Notes Buffer & Synthesize Button Card -->
+          <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div class="flex items-center justify-between text-xs font-mono">
+              <span class="font-bold text-brandNavy">2. Source Notes Buffer</span>
+              <button
+                type="button"
+                onclick="handleLoadSample()"
+                class="text-brandIndigo hover:underline font-semibold"
+              >
+                Load Sample
+              </button>
+            </div>
+
+            <textarea
+              id="mobile-source-textarea"
+              placeholder="Or paste lecture excerpts, notes, or readings here..."
+              rows="5"
+              class="w-full bg-[#F8F9FA] border border-[#E2E8F0] rounded-lg p-3 text-xs font-mono text-brandNavy placeholder:text-slate-400 focus:outline-none focus:border-brandIndigo resize-y leading-relaxed"
+              oninput="syncMobileTextarea(this.value)"
+            ></textarea>
+
+            <button
+              id="mobile-synthesize-btn"
+              type="button"
+              onclick="handleSynthesize()"
+              class="w-full h-12 rounded-xl bg-brandIndigo active:scale-[0.99] hover:opacity-95 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-60"
+            >
+              <span id="mobile-synthesize-btn-label">Synthesize Study Canvas</span>
+              <span class="font-mono text-base">&rarr;</span>
+            </button>
           </div>
         </div>
 
@@ -407,6 +527,70 @@
     </main>
 
   </div>
+
+  <!-- MOBILE APP BOTTOM NAVIGATION BAR (Phones & Tablets < 768px) -->
+  <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-[#E2E8F0] flex md:hidden items-stretch justify-around z-50 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+    <!-- 1. Summary -->
+    <button
+      type="button"
+      id="mobile-nav-summary"
+      onclick="setActiveTab('summary')"
+      class="flex-1 flex flex-col items-center justify-center py-1 transition-colors text-brandIndigo font-bold relative after:content-[''] after:absolute after:top-0 after:w-8 after:h-0.5 after:bg-brandIndigo after:rounded-full"
+    >
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <span class="text-[10px] font-mono tracking-tight">Summary</span>
+    </button>
+    <!-- 2. Drills (Arena) -->
+    <button
+      type="button"
+      id="mobile-nav-arena"
+      onclick="setActiveTab('arena')"
+      class="flex-1 flex flex-col items-center justify-center py-1 transition-colors text-[#64748B] hover:text-brandNavy font-medium"
+    >
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+      <span class="text-[10px] font-mono tracking-tight">Drills</span>
+    </button>
+    <!-- 3. Cards -->
+    <button
+      type="button"
+      id="mobile-nav-cards"
+      onclick="setActiveTab('cards')"
+      class="flex-1 flex flex-col items-center justify-center py-1 transition-colors text-[#64748B] hover:text-brandNavy font-medium"
+    >
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+      </svg>
+      <span class="text-[10px] font-mono tracking-tight">Cards</span>
+    </button>
+    <!-- 4. Assistant -->
+    <button
+      type="button"
+      id="mobile-nav-chat"
+      onclick="setActiveTab('chat')"
+      class="flex-1 flex flex-col items-center justify-center py-1 transition-colors text-[#64748B] hover:text-brandNavy font-medium"
+    >
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      </svg>
+      <span class="text-[10px] font-mono tracking-tight">Sensei</span>
+    </button>
+    <!-- 5. Upload / Source -->
+    <button
+      type="button"
+      id="mobile-nav-source"
+      onclick="setActiveTab('source')"
+      class="flex-1 flex flex-col items-center justify-center py-1 transition-colors text-[#64748B] hover:text-brandNavy font-medium"
+    >
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+      </svg>
+      <span class="text-[10px] font-mono tracking-tight">Upload</span>
+    </button>
+  </nav>
 
   <script>
     // --- SAMPLE DATASET ---
@@ -942,19 +1126,60 @@
     }
 
     // --- RENDERERS ---
+    function syncMobileTextarea(val) {
+      const desktopTa = document.getElementById("source-textarea");
+      if (desktopTa) desktopTa.value = val;
+    }
+
     function setActiveTab(tabId) {
       activeTab = tabId;
-      ["summary", "arena", "cards", "chat"].forEach((id) => {
+      const allTabs = ["summary", "arena", "cards", "chat", "source"];
+      
+      allTabs.forEach((id) => {
+        // Desktop Tab Strip Button
         const btn = document.getElementById(`tab-btn-${id}`);
+        if (btn) {
+          if (id === tabId) {
+            btn.className = "h-full px-1 text-xs transition-all flex items-center border-b-2 border-brandIndigo text-brandIndigo font-bold";
+          } else {
+            btn.className = "h-full px-1 text-xs transition-all flex items-center text-[#64748B] hover:text-brandNavy font-medium";
+          }
+        }
+
+        // View Visibility
         const view = document.getElementById(`view-${id}`);
-        if (id === tabId) {
-          btn.className = "h-full px-1 text-xs transition-all flex items-center border-b-2 border-brandIndigo text-brandIndigo font-bold";
-          view.classList.remove("hidden");
-        } else {
-          btn.className = "h-full px-1 text-xs transition-all flex items-center text-[#64748B] hover:text-brandNavy font-medium";
-          view.classList.add("hidden");
+        if (view) {
+          if (id === tabId) {
+            view.classList.remove("hidden");
+          } else {
+            view.classList.add("hidden");
+          }
+        }
+
+        // Mobile Bottom Navigation Bar Button
+        const mobileNav = document.getElementById(`mobile-nav-${id}`);
+        if (mobileNav) {
+          if (id === tabId) {
+            mobileNav.className = "flex-1 flex flex-col items-center justify-center py-1 transition-colors text-brandIndigo font-bold relative after:content-[''] after:absolute after:top-0 after:w-8 after:h-0.5 after:bg-brandIndigo after:rounded-full";
+          } else {
+            mobileNav.className = "flex-1 flex flex-col items-center justify-center py-1 transition-colors text-[#64748B] hover:text-brandNavy font-medium";
+          }
         }
       });
+
+      // Reset scroll position on container when tab changes
+      const container = document.getElementById("active-tab-container");
+      if (container) container.scrollTop = 0;
+
+      // Sync textarea values when viewing source tab
+      if (tabId === "source") {
+        const desktopTa = document.getElementById("source-textarea");
+        const mobileTa = document.getElementById("mobile-source-textarea");
+        if (desktopTa && mobileTa && desktopTa.value && !mobileTa.value) {
+          mobileTa.value = desktopTa.value;
+        }
+      }
+
       if (tabId === "summary") renderSummary();
       if (tabId === "arena") renderArena();
       if (tabId === "cards") renderCards();
@@ -971,10 +1196,10 @@
       document.getElementById("summary-takeaways").innerHTML = studyData.takeaways
         .map(
           (item) => `
-          <div class="p-5 flex gap-4">
+          <div class="p-4 sm:p-5 flex gap-3 sm:gap-4">
             <span class="font-mono text-xs px-2 py-0.5 h-fit rounded bg-brandIndigo text-white font-semibold shrink-0 mt-0.5">${escapeHtml(item.num)}</span>
             <div>
-              <h4 class="text-xs font-bold text-brandNavy font-mono">${escapeHtml(item.concept)}</h4>
+              <h4 class="text-xs sm:text-sm font-bold text-brandNavy font-mono">${escapeHtml(item.concept)}</h4>
               <p class="text-xs text-[#64748B] mt-1 leading-relaxed">${escapeHtml(item.desc)}</p>
             </div>
           </div>
@@ -997,7 +1222,7 @@
       const container = document.getElementById("view-arena");
       if (quizFinished) {
         container.innerHTML = `
-          <div class="bg-white border border-[#E2E8F0] rounded-lg p-8 text-center max-w-lg mx-auto shadow-sm">
+          <div class="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-8 text-center max-w-lg mx-auto shadow-sm">
             <span class="text-xs font-mono text-brandIndigo font-semibold uppercase tracking-wider block mb-2">Evaluation Finished</span>
             <h3 class="text-xl font-serif font-bold text-brandNavy mb-2">Recall Diagnostic Concluded</h3>
             <div class="text-3xl font-mono text-brandNavy my-3 font-semibold">
@@ -1009,7 +1234,7 @@
             <button
               type="button"
               onclick="resetQuiz()"
-              class="px-5 py-2.5 rounded bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs uppercase tracking-wide transition-opacity"
+              class="w-full sm:w-auto px-6 py-3 rounded-xl bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs uppercase tracking-wide transition-opacity shadow-sm min-h-[44px]"
             >
               Reset Session
             </button>
@@ -1026,7 +1251,7 @@
           const isCorrectOption = idx === qObj.correct;
           const isSelected = selectedAnswer === idx;
 
-          let buttonStyle = "bg-white border-[#E2E8F0] hover:border-brandIndigo text-brandNavy";
+          let buttonStyle = "bg-white border-[#E2E8F0] hover:border-brandIndigo active:bg-slate-50 text-brandNavy";
           if (selectedAnswer !== null) {
             if (isCorrectOption) {
               buttonStyle = "bg-emerald-50 border-emerald-500 text-emerald-950 font-medium";
@@ -1040,10 +1265,10 @@
               type="button"
               onclick="handleAnswerSelect(${idx})"
               ${selectedAnswer !== null ? "disabled" : ""}
-              class="w-full text-left p-3.5 rounded-lg border text-xs transition-colors flex justify-between gap-3 shadow-sm ${buttonStyle}"
+              class="w-full text-left p-3.5 sm:p-4 rounded-xl border text-xs sm:text-sm min-h-[48px] active:scale-[0.99] transition-all flex items-center justify-between gap-3 shadow-sm ${buttonStyle}"
             >
-              <span>${escapeHtml(opt)}</span>
-              <span class="font-mono text-[#64748B] shrink-0">0${idx + 1}</span>
+              <span class="leading-relaxed">${escapeHtml(opt)}</span>
+              <span class="font-mono text-[10px] sm:text-xs text-[#64748B] shrink-0 px-2 py-0.5 rounded bg-slate-50 border border-slate-200">0${idx + 1}</span>
             </button>
           `;
         })
@@ -1052,26 +1277,26 @@
       const feedbackHtml =
         selectedAnswer !== null
           ? `
-          <div class="p-4 rounded-lg text-xs leading-relaxed border mb-4 ${
+          <div class="p-3.5 sm:p-4 rounded-xl text-xs leading-relaxed border mb-4 ${
             selectedAnswer === qObj.correct
               ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
               : "bg-red-50/70 border-red-200 text-red-950"
           }">
             ${escapeHtml(selectedAnswer === qObj.correct ? qObj.accolade : qObj.critique)}
           </div>
-          <div class="flex justify-between items-center pt-3 border-t border-[#E2E8F0]">
+          <div class="flex justify-between items-center pt-3 border-t border-[#E2E8F0] gap-3">
             <button
               type="button"
               onclick="handlePrevQuestion()"
               ${currentQIndex === 0 ? "disabled" : ""}
-              class="px-4 py-2 rounded border border-[#E2E8F0] text-brandNavy hover:bg-brandSky text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-40"
+              class="px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-brandNavy hover:bg-brandSky active:bg-slate-100 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-40 min-h-[44px]"
             >
               &larr; Previous
             </button>
             <button
               type="button"
               onclick="handleNextQuestion()"
-              class="px-5 py-2 rounded bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs uppercase tracking-wide transition-opacity"
+              class="px-5 py-2.5 rounded-xl bg-brandIndigo hover:opacity-95 active:scale-[0.99] text-white font-semibold text-xs uppercase tracking-wide transition-all min-h-[44px]"
             >
               ${currentQIndex < studyData.questions.length - 1 ? "Next Question &rarr;" : "Finish Diagnostic &rarr;"}
             </button>
@@ -1087,7 +1312,7 @@
               type="button"
               onclick="jumpToQuestion(${idx})"
               title="Question ${idx + 1}"
-              class="w-7 h-7 shrink-0 rounded text-[11px] font-mono font-semibold transition-all ${
+              class="w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-lg text-[11px] font-mono font-semibold transition-all ${
                 isActive
                   ? "bg-brandIndigo text-white ring-2 ring-brandIndigo ring-offset-1"
                   : "bg-white border border-[#CBD5E1] text-[#64748B] hover:border-brandIndigo hover:text-brandNavy"
@@ -1100,7 +1325,7 @@
         .join("");
 
       container.innerHTML = `
-        <div class="bg-white border border-[#E2E8F0] rounded-lg p-7 shadow-sm">
+        <div class="bg-white border border-[#E2E8F0] rounded-2xl p-4 sm:p-6 md:p-7 shadow-sm">
           <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-3 mb-4">
             <span class="text-xs font-mono text-[#64748B]">
               QUESTION ${String(currentQIndex + 1).padStart(2, "0")} // ${String(studyData.questions.length).padStart(2, "0")}
@@ -1116,7 +1341,7 @@
             ${progressPills}
           </div>
 
-          <h3 class="text-base font-serif font-semibold text-brandNavy leading-relaxed mb-5">
+          <h3 class="text-sm sm:text-base font-serif font-semibold text-brandNavy leading-relaxed mb-4 sm:mb-5">
             ${escapeHtml(qObj.q)}
           </h3>
 
@@ -1183,26 +1408,53 @@
 
     // --- HANDLERS ---
     function showImagePreview(name, imgPayload) {
+      if (!imgPayload) return;
       const box = document.getElementById("image-preview-box");
       const thumb = document.getElementById("image-preview-thumb");
       const title = document.getElementById("image-preview-name");
       const meta = document.getElementById("image-preview-meta");
-      if (!box || !imgPayload) return;
-      thumb.src = imgPayload.dataUrl;
-      title.textContent = name || "Uploaded Image";
-      meta.textContent = `${imgPayload.width}×${imgPayload.height}px • Ready for Vision Synthesis`;
-      box.classList.remove("hidden");
+      if (box && thumb && title && meta) {
+        thumb.src = imgPayload.dataUrl;
+        title.textContent = name || "Uploaded Image";
+        meta.textContent = `${imgPayload.width}×${imgPayload.height}px • Ready for Vision Synthesis`;
+        box.classList.remove("hidden");
+      }
+
+      const mobileBox = document.getElementById("mobile-image-preview-box");
+      const mobileThumb = document.getElementById("mobile-image-preview-thumb");
+      const mobileTitle = document.getElementById("mobile-image-preview-name");
+      const mobileMeta = document.getElementById("mobile-image-preview-meta");
+      if (mobileBox && mobileThumb && mobileTitle && mobileMeta) {
+        mobileThumb.src = imgPayload.dataUrl;
+        mobileTitle.textContent = name || "Uploaded Image";
+        mobileMeta.textContent = `${imgPayload.width}×${imgPayload.height}px • Vision Ready`;
+        mobileBox.classList.remove("hidden");
+      }
     }
 
     function clearUploadedImage() {
       uploadedImagePayload = null;
       uploadedFile = null;
+
       const box = document.getElementById("image-preview-box");
       const input = document.getElementById("file-upload-input");
       if (box) box.classList.add("hidden");
       if (input) input.value = "";
-      document.getElementById("upload-box-title").textContent = "Upload lecture document or image";
-      document.getElementById("upload-box-subtitle").textContent = "PDF, PNG, JPG, Slide Photo, or Text";
+
+      const mobileBox = document.getElementById("mobile-image-preview-box");
+      const mobileInput = document.getElementById("file-upload-input-mobile");
+      if (mobileBox) mobileBox.classList.add("hidden");
+      if (mobileInput) mobileInput.value = "";
+
+      const upTitle = document.getElementById("upload-box-title");
+      const upSub = document.getElementById("upload-box-subtitle");
+      if (upTitle) upTitle.textContent = "Upload lecture document or image";
+      if (upSub) upSub.textContent = "PDF, PNG, JPG, Slide Photo, or Text";
+
+      const mTitle = document.getElementById("mobile-upload-box-title");
+      const mSub = document.getElementById("mobile-upload-box-subtitle");
+      if (mTitle) mTitle.textContent = "Tap to Select File or Snap Photo";
+      if (mSub) mSub.textContent = "PDF, slide screenshots, or notes";
     }
 
     async function handleFileUpload(e) {
@@ -1217,30 +1469,47 @@
 
       const uploadTitle = document.getElementById("upload-box-title");
       const uploadSub = document.getElementById("upload-box-subtitle");
+      const mTitle = document.getElementById("mobile-upload-box-title");
+      const mSub = document.getElementById("mobile-upload-box-subtitle");
       const status = document.getElementById("sidebar-status");
       const textarea = document.getElementById("source-textarea");
+      const mobileTextarea = document.getElementById("mobile-source-textarea");
+
       const previewBox = document.getElementById("image-preview-box");
       if (previewBox) previewBox.classList.add("hidden");
+      const mobilePreviewBox = document.getElementById("mobile-image-preview-box");
+      if (mobilePreviewBox) mobilePreviewBox.classList.add("hidden");
 
-      uploadTitle.textContent = `Processing ${file.name}...`;
-      uploadSub.textContent = "Preparing content for synthesis...";
-      status.textContent = "STATUS: READING FILE";
+      const setProcText = (titleMsg, subMsg) => {
+        if (uploadTitle) uploadTitle.textContent = titleMsg;
+        if (uploadSub) uploadSub.textContent = subMsg;
+        if (mTitle) mTitle.textContent = titleMsg;
+        if (mSub) mSub.textContent = subMsg;
+      };
+
+      const setBufferText = (textVal) => {
+        if (textarea) textarea.value = textVal;
+        if (mobileTextarea) mobileTextarea.value = textVal;
+      };
+
+      setProcText(`Processing ${file.name}...`, "Preparing content for synthesis...");
+      if (status) status.textContent = "STATUS: READING FILE";
 
       try {
         const lowerName = (file.name || "").toLowerCase();
         if (isImageFile(file)) {
-          uploadSub.textContent = "Optimizing image for Vision AI...";
+          setProcText(`Processing ${file.name}...`, "Optimizing image for Vision AI...");
           const compressed = await withTimeout(compressImageFileToBase64(file), 5000, null);
           if (compressed) {
             uploadedImagePayload = compressed;
             showImagePreview(file.name, compressed);
-            textarea.value = `[Visual Source Loaded: ${file.name} (${compressed.width}×${compressed.height}px)]\nAnalyzing slide/image text and diagrams...`;
+            setBufferText(`[Visual Source Loaded: ${file.name} (${compressed.width}×${compressed.height}px)]\nAnalyzing slide/image text and diagrams...`);
           }
         } else if (lowerName.endsWith(".pdf") || file.type === "application/pdf") {
-          uploadSub.textContent = "Scanning slides & pages...";
+          setProcText(`Processing ${file.name}...`, "Scanning slides & pages...");
           const pdfResult = await withTimeout(
             extractPdfTextAndImageClient(file, (curr, total) => {
-              uploadSub.textContent = `Scanning slide ${curr} of ${total}...`;
+              setProcText(`Processing ${file.name}...`, `Scanning slide ${curr} of ${total}...`);
             }),
             15000,
             { text: "", scannedImage: null, pageCount: 0 }
@@ -1249,48 +1518,53 @@
             document.getElementById("masthead-filesize").textContent = `(${pdfResult.pageCount} slides • ${(file.size / 1024).toFixed(1)} KB)`;
           }
           if (pdfResult && pdfResult.text && pdfResult.text.trim()) {
-            textarea.value = pdfResult.text.trim();
+            setBufferText(pdfResult.text.trim());
           } else if (pdfResult && pdfResult.scannedImage) {
             uploadedImagePayload = pdfResult.scannedImage;
             showImagePreview(`${file.name} (Scanned Page)`, pdfResult.scannedImage);
-            textarea.value = `[Scanned PDF Visual Loaded: ${file.name}]\nExtracting text & concepts from scanned page image...`;
+            setBufferText(`[Scanned PDF Visual Loaded: ${file.name}]\nExtracting text & concepts from scanned page image...`);
           } else {
-            textarea.value = `[PDF Document Loaded: ${file.name}]`;
+            setBufferText(`[PDF Document Loaded: ${file.name}]`);
           }
         } else {
           const text = await withTimeout(file.text(), 4000, "");
-          // Guard against accidental binary content
           const nonPrintableRatio = text
             ? (text.slice(0, 1000).match(/[\x00-\x08\x0E-\x1F\uFFFD]/g) || []).length / Math.min(text.length, 1000)
             : 0;
           if (nonPrintableRatio > 0.1) {
-            textarea.value = `[Document Loaded: ${file.name}]`;
+            setBufferText(`[Document Loaded: ${file.name}]`);
           } else {
-            textarea.value = (text || "").trim();
+            setBufferText((text || "").trim());
           }
         }
       } catch (err) {
         console.warn("Client extraction notice, proceeding to synthesis:", err);
       } finally {
-        uploadTitle.textContent = file.name;
-        uploadSub.textContent = "Synthesizing study canvas...";
+        setProcText(file.name, "Synthesizing study canvas...");
       }
 
       await handleSynthesize();
-      uploadSub.textContent = "Analyzed • Click or drag another file to replace";
+      setProcText(file.name, "Analyzed • Tap to replace or upload another");
     }
 
     function handleLoadSample() {
       clearUploadedImage();
       studyData.filename = "Cellular_Respiration_Core.pdf";
-      document.getElementById("source-textarea").value =
+      const sampleText =
         "Cellular Respiration and ATP Generation:\nGlycolysis occurs in the cytoplasm and breaks glucose into 2 pyruvate molecules, yielding a net of 2 ATP and 2 NADH without requiring oxygen. The Krebs Cycle occurs in the mitochondrial matrix, processing Acetyl-CoA to produce NADH and FADH2. The Electron Transport Chain (ETC) sits in the inner membrane and generates the vast majority of cellular ATP via oxidative phosphorylation and the ATP Synthase proton gradient.\nOxygen acts strictly as the final electron acceptor at Complex IV. Without oxygen, oxidative phosphorylation halts, and cells must rely on anaerobic fermentation.";
+      const desktopTa = document.getElementById("source-textarea");
+      const mobileTa = document.getElementById("mobile-source-textarea");
+      if (desktopTa) desktopTa.value = sampleText;
+      if (mobileTa) mobileTa.value = sampleText;
+      document.getElementById("masthead-filename").textContent = studyData.filename;
+      document.getElementById("banner-course-title").textContent = studyData.filename;
     }
 
     async function handleSynthesize() {
       if (isSynthesizing) return;
       const textarea = document.getElementById("source-textarea");
-      const rawTextareaVal = textarea.value.trim();
+      const mobileTextarea = document.getElementById("mobile-source-textarea");
+      const rawTextareaVal = ((textarea && textarea.value) || (mobileTextarea && mobileTextarea.value) || "").trim();
       const isPlaceholderText = /^\[(Visual Source|Scanned PDF|PDF Document|Document) Loaded:/i.test(rawTextareaVal);
       const cleanSourceText = isPlaceholderText ? "" : rawTextareaVal;
 
@@ -1302,11 +1576,17 @@
       isSynthesizing = true;
       const btn = document.getElementById("synthesize-btn");
       const label = document.getElementById("synthesize-btn-label");
+      const mobileBtn = document.getElementById("mobile-synthesize-btn");
+      const mobileLabel = document.getElementById("mobile-synthesize-btn-label");
       const status = document.getElementById("sidebar-status");
       const bannerStatus = document.getElementById("banner-status-text");
-      btn.disabled = true;
-      label.textContent = uploadedImagePayload ? "Synthesizing Image..." : "Synthesizing Document...";
-      status.textContent = "STATUS: SYNTHESIZING";
+
+      const loadingText = uploadedImagePayload ? "Synthesizing Image..." : "Synthesizing Document...";
+      if (btn) btn.disabled = true;
+      if (label) label.textContent = loadingText;
+      if (mobileBtn) mobileBtn.disabled = true;
+      if (mobileLabel) mobileLabel.textContent = loadingText;
+      if (status) status.textContent = "STATUS: SYNTHESIZING";
       if (bannerStatus) bannerStatus.textContent = "ANALYZING...";
 
       const activeFilename = uploadedFile
@@ -1424,9 +1704,11 @@
         ];
       } finally {
         isSynthesizing = false;
-        btn.disabled = false;
-        label.textContent = "Synthesize Study Canvas";
-        status.textContent = "STATUS: READY";
+        if (btn) btn.disabled = false;
+        if (label) label.textContent = "Synthesize Study Canvas";
+        if (mobileBtn) mobileBtn.disabled = false;
+        if (mobileLabel) mobileLabel.textContent = "Synthesize Study Canvas";
+        if (status) status.textContent = "STATUS: READY";
         if (bannerStatus) bannerStatus.textContent = "VERIFIED";
         renderSummary();
         renderArena();
