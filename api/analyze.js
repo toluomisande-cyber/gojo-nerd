@@ -1,10 +1,10 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const CANDIDATE_MODELS = [
-  'gemini-1.5-flash',
-  'gemini-2.0-flash',
-  'gemini-2.5-flash',
   'gemini-3.1-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
 ];
 
 function withModelTimeout(promise, ms = 15000) {
@@ -257,8 +257,16 @@ module.exports = async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     let userMemoryBlock = '';
-    if (fields.userMemory && typeof fields.userMemory === 'object') {
-      const um = fields.userMemory;
+    let parsedUserMemory = fields.userMemory;
+    if (typeof parsedUserMemory === 'string' && parsedUserMemory.trim()) {
+      try {
+        parsedUserMemory = JSON.parse(parsedUserMemory);
+      } catch {
+        parsedUserMemory = null;
+      }
+    }
+    if (parsedUserMemory && typeof parsedUserMemory === 'object') {
+      const um = parsedUserMemory;
       const lines = [];
       if (um.name || um.major) {
         lines.push(`Student: ${um.name || 'Student'} (${um.major || 'Course'})`);

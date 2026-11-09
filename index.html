@@ -3089,14 +3089,17 @@
 
     async function handleSynthesize() {
       if (isSynthesizing) return;
+      const fileInput = document.querySelector('input[type="file"]');
+      const file = (fileInput && fileInput.files && fileInput.files[0]) || uploadedFile;
+
       const textarea = document.getElementById("source-textarea");
       const mobileTextarea = document.getElementById("mobile-source-textarea");
       const rawTextareaVal = ((textarea && textarea.value) || (mobileTextarea && mobileTextarea.value) || "").trim();
       const isPlaceholderText = /^\[(Visual Source|Scanned PDF|PDF Document|Document) Loaded:/i.test(rawTextareaVal);
-      const cleanSourceText = isPlaceholderText ? "" : rawTextareaVal;
+      const sourceText = isPlaceholderText ? "" : rawTextareaVal;
 
-      if (!cleanSourceText && !uploadedImagePayload && !uploadedFile) {
-        alert("Please enter notes, upload a PDF, or upload an image first.");
+      if (!file && !sourceText.trim() && !uploadedImagePayload) {
+        alert("Upload a PDF or enter notes first.");
         return;
       }
 
@@ -3116,111 +3119,59 @@
       if (status) status.textContent = "STATUS: SYNTHESIZING";
       if (bannerStatus) bannerStatus.textContent = "ANALYZING...";
 
-      const activeFilename = uploadedFile
-        ? uploadedFile.name
+      const activeFilename = file
+        ? file.name
         : studyData.filename && studyData.filename !== "Cellular_Respiration_Core.pdf"
         ? studyData.filename
-        : "Pasted_Lecture_Notes.txt";
-
-      let updatedByServer = false;
-      let latestText = cleanSourceText;
+        : "Pasted_Notes.txt";
 
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 13500);
-
-        const reqBody = {
-          filename: activeFilename,
-          text: cleanSourceText || "",
-          userMemory: {
+        const formData = new FormData();
+        if (sourceText.trim()) {
+          formData.append("text", sourceText);
+        }
+        if (file) {
+          formData.append("file", file);
+        }
+        if (uploadedImagePayload && uploadedImagePayload.base64) {
+          formData.append("imageBase64", uploadedImagePayload.base64);
+          formData.append("imageMimeType", uploadedImagePayload.mimeType || "image/jpeg");
+        }
+        formData.append(
+          "userMemory",
+          JSON.stringify({
             name: currentStudent ? currentStudent.name : "Student",
             major: currentStudent ? currentStudent.major : "",
             memories: userMemories.slice(0, 15),
-          },
+          })
+        );
+
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await res.json();
+        if (!res.ok || !result.success) {
+          throw new Error(result.error || "Analysis failed");
+        }
+
+        if (result.extractedText && textarea && !sourceText) {
+          textarea.value = result.extractedText;
+        }
+
+        // Set real, topic-clustered AI output into state
+        studyData = {
+          filename: file ? file.name : "Pasted_Notes.txt",
+          unit_title: result.data.unit_title || (file ? file.name : "Pasted_Notes.txt"),
+          takeaways: result.data.takeaways || [],
+          terms: result.data.terms || [],
+          trap: result.data.trap || "",
+          questions: result.data.questions || [],
+          cards: result.data.cards || [],
         };
-        if (uploadedImagePayload && uploadedImagePayload.base64) {
-          reqBody.imageBase64 = uploadedImagePayload.base64;
-          reqBody.imageMimeType = uploadedImagePayload.mimeType || "image/jpeg";
-        }
 
-        let res;
-        try {
-          res = await fetch("/api/analyze", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(reqBody),
-            signal: controller.signal,
-          });
-        } finally {
-          clearTimeout(timeoutId);
-        }
-
-        const payload = await res.json().catch(() => null);
-
-        if (payload && payload.extractedText) {
-          latestText = payload.extractedText.trim();
-          textarea.value = latestText;
-        }
-
-        if (res.ok && payload && payload.success && payload.data) {
-          const d = payload.data;
-          if (d.extractedText && !latestText) {
-            latestText = String(d.extractedText).trim();
-            textarea.value = latestText;
-          }
-          const takeaways = Array.isArray(d.takeaways) && d.takeaways.length > 0 ? d.takeaways : [];
-          const terms = Array.isArray(d.terms) && d.terms.length > 0 ? d.terms : [];
-          const questions = Array.isArray(d.questions) && d.questions.length > 0 ? d.questions : [];
-          const cards = Array.isArray(d.cards) && d.cards.length > 0
-            ? d.cards
-            : [
-                ...takeaways.map((t) => ({ term: t.concept, def: t.desc })),
-                ...terms.map((term) => ({
-                  term: typeof term === "string" ? term : term.term || "Key Term",
-                  def: d.trap || takeaways[0]?.desc || "Extracted from your uploaded study material.",
-                })),
-              ].slice(0, 6);
-
-          if (takeaways.length > 0) {
-            const localFallback = synthesizeFromTextLocally(latestText || activeFilename, activeFilename);
-            studyData = {
-              filename: activeFilename,
-              unit_title: d.unit_title || activeFilename,
-              takeaways,
-              terms: terms.length > 0 ? terms.map((t) => (typeof t === "string" ? t : t.term || "Term")) : localFallback.terms,
-              trap: d.trap || localFallback.trap,
-              questions: questions.length > 0 ? questions : localFallback.questions,
-              cards: cards.length > 0 ? cards : localFallback.cards,
-            };
-            updatedByServer = true;
-          }
-        }
-      } catch (err) {
-        console.warn("API synthesis notice, switching to local/OCR analyzer:", err);
-      }
-
-      try {
-        if (!updatedByServer) {
-          if (uploadedImagePayload && !latestText) {
-            label.textContent = "Running Optical Scan...";
-            status.textContent = "STATUS: OCR SCANNING";
-            const ocrText = await runClientOcrFallback(uploadedImagePayload.dataUrl, 7500);
-            if (ocrText && ocrText.length >= 25) {
-              latestText = ocrText;
-              textarea.value = ocrText;
-              studyData = synthesizeFromTextLocally(ocrText, activeFilename);
-            } else {
-              studyData = synthesizeFromImageFallback(activeFilename, ocrText, uploadedImagePayload);
-              textarea.value = studyData.takeaways.map((t) => `${t.num}. ${t.concept}: ${t.desc}`).join("\n\n");
-            }
-          } else if (latestText) {
-            studyData = synthesizeFromTextLocally(latestText, activeFilename);
-          } else {
-            studyData = synthesizeFromImageFallback(activeFilename, "", uploadedImagePayload);
-            textarea.value = studyData.takeaways.map((t) => `${t.num}. ${t.concept}: ${t.desc}`).join("\n\n");
-          }
-        }
-
+        // Reset quiz indices
         currentQIndex = 0;
         selectedAnswer = null;
         arenaScore = 0;
@@ -3232,17 +3183,10 @@
         chatMessages = [
           {
             role: "gojo",
-            content: `Indexed "${studyData.filename}" (${studyData.takeaways.length} core pillars and ${studyData.terms.length} key terms extracted). Ask about any concept in your uploaded material or test yourself in Active Recall Drills.`,
+            content: `Indexed "${studyData.unit_title || studyData.filename}" (${studyData.takeaways.length} core pillars and ${studyData.terms.length} key terms extracted). Ask about any concept in your uploaded material or test yourself in Active Recall Drills.`,
           },
         ];
-      } finally {
-        isSynthesizing = false;
-        if (btn) btn.disabled = false;
-        if (label) label.textContent = "Synthesize Study Canvas";
-        if (mobileBtn) mobileBtn.disabled = false;
-        if (mobileLabel) mobileLabel.textContent = "Synthesize Study Canvas";
-        if (status) status.textContent = "STATUS: READY";
-        if (bannerStatus) bannerStatus.textContent = "VERIFIED";
+
         if (currentStudent) {
           currentStudent.stats = currentStudent.stats || {};
           currentStudent.stats.decksAnalyzed = (currentStudent.stats.decksAnalyzed || 0) + 1;
@@ -3254,6 +3198,16 @@
         renderCards();
         renderChat();
         setActiveTab("summary");
+      } catch (err) {
+        alert(err.message || "Analysis failed");
+      } finally {
+        isSynthesizing = false;
+        if (btn) btn.disabled = false;
+        if (label) label.textContent = "Synthesize Study Canvas";
+        if (mobileBtn) mobileBtn.disabled = false;
+        if (mobileLabel) mobileLabel.textContent = "Synthesize Study Canvas";
+        if (status) status.textContent = "STATUS: READY";
+        if (bannerStatus) bannerStatus.textContent = "VERIFIED";
       }
     }
 

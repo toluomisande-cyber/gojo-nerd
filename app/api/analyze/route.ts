@@ -4,10 +4,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfParseModule from "pdf-parse";
 
 const CANDIDATE_MODELS = [
-  "gemini-1.5-flash",
-  "gemini-2.0-flash",
-  "gemini-2.5-flash",
   "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
 ];
 
 function parseJsonSafe(rawText: string) {

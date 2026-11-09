@@ -797,101 +797,65 @@ export default function AcademicWorkspace() {
     if (!file) return;
     setUploadedFile(file);
     setStudyData((prev) => ({ ...prev, filename: file.name }));
-    const isImg = file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name);
     if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt") || file.name.toLowerCase().endsWith(".md")) {
       const text = await file.text();
       setSourceText(text);
-      await runSynthesis(file, text);
-    } else if (isImg) {
-      setSourceText(`[Uploaded Image: ${file.name}] — Synthesizing slide/image...`);
-      await runSynthesis(file, "");
-    } else {
-      setSourceText(`[Uploaded PDF: ${file.name}] — Synthesizing document...`);
-      await runSynthesis(file, "");
     }
+    await handleSynthesize(file);
   };
 
-  const runSynthesis = async (fileToUse: File | null, textToUse: string) => {
-    const cleanText = /^\[(Uploaded PDF|Uploaded Image):/i.test(textToUse.trim()) ? "" : textToUse.trim();
-    if (!cleanText && !fileToUse) {
-      alert("Please enter notes, upload a PDF, or upload an image first.");
+  const handleSynthesize = async (explicitFile?: File | React.MouseEvent) => {
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+    const file = explicitFile instanceof File ? explicitFile : fileInput?.files?.[0] || uploadedFile;
+
+    if (!file && !sourceText.trim()) {
+      alert("Upload a PDF or enter notes first.");
       return;
     }
+
     setIsSynthesizing(true);
-    const activeFilename = fileToUse ? fileToUse.name : "Custom_Study_Notes.txt";
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 13500);
-      let response: Response;
-
-      try {
-        const isImg = fileToUse && (fileToUse.type.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp)$/i.test(fileToUse.name));
-        if (isImg && fileToUse) {
-          const compressed = await compressImageFileToBase64(fileToUse);
-          response = await fetch("/api/analyze", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              filename: activeFilename,
-              text: cleanText,
-              imageBase64: compressed.base64,
-              imageMimeType: compressed.mimeType,
-              userMemory: {
-                name: currentStudent?.name || "Student",
-                major: currentStudent?.major || "",
-                memories: userMemories.slice(0, 15),
-              },
-            }),
-            signal: controller.signal,
-          });
-        } else {
-          const formData = new FormData();
-          if (fileToUse) formData.append("file", fileToUse);
-          if (cleanText) formData.append("text", cleanText);
-          formData.append(
-            "userMemory",
-            JSON.stringify({
-              name: currentStudent?.name || "Student",
-              major: currentStudent?.major || "",
-              memories: userMemories.slice(0, 15),
-            })
-          );
-          response = await fetch("/api/analyze", {
-            method: "POST",
-            body: formData,
-            signal: controller.signal,
-          });
-        }
-      } finally {
-        clearTimeout(timeoutId);
-      }
-
-      const result = await response.json().catch(() => null);
-
-      if (response.ok && result && result.success && result.data) {
-        const apiData = result.data;
-        const resolvedText = result.extractedText || apiData.extractedText || cleanText || activeFilename;
-        if (result.extractedText || apiData.extractedText) {
-          setSourceText(result.extractedText || apiData.extractedText);
-        }
-        const fallback = synthesizeFromTextLocally(resolvedText, activeFilename);
-        const nextDeck: StudyPayload = {
-          filename: activeFilename,
-          unit_title: apiData.unit_title || activeFilename,
-          takeaways: Array.isArray(apiData.takeaways) && apiData.takeaways.length ? apiData.takeaways : fallback.takeaways,
-          terms: Array.isArray(apiData.terms) && apiData.terms.length ? apiData.terms : fallback.terms,
-          trap: apiData.trap || fallback.trap,
-          questions: Array.isArray(apiData.questions) && apiData.questions.length ? apiData.questions : fallback.questions,
-          cards: Array.isArray(apiData.cards) && apiData.cards.length ? apiData.cards : fallback.cards,
-        };
-        setStudyData(nextDeck);
-        saveDeckToLibrary(nextDeck);
+      const formData = new FormData();
+      if (file) {
+        formData.append("file", file);
       } else {
-        const localData = synthesizeFromTextLocally(cleanText || `Visual Study Material: ${activeFilename}. Analyze key diagrams, labels, and core mechanisms.`, activeFilename);
-        setStudyData(localData);
-        saveDeckToLibrary(localData);
+        formData.append("text", sourceText);
       }
+      formData.append(
+        "userMemory",
+        JSON.stringify({
+          name: currentStudent?.name || "Student",
+          major: currentStudent?.major || "",
+          memories: userMemories.slice(0, 15),
+        })
+      );
+
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "Analysis failed");
+      }
+
+      const nextDeck: StudyPayload = {
+        filename: file ? file.name : "Pasted_Notes.txt",
+        unit_title: result.data.unit_title || (file ? file.name : "Pasted_Notes.txt"),
+        takeaways: result.data.takeaways,
+        terms: result.data.terms,
+        trap: result.data.trap,
+        questions: result.data.questions,
+        cards: result.data.cards,
+      };
+
+      // Set real, topic-clustered AI output into React state
+      setStudyData(nextDeck);
+      saveDeckToLibrary(nextDeck);
+
+      // Reset quiz indices
       setCurrentQIndex(0);
       setSelectedAnswer(null);
       setArenaScore(0);
@@ -899,19 +863,13 @@ export default function AcademicWorkspace() {
       setQuizFinished(false);
       setCurrentCardIndex(0);
       setIsFlipped(false);
+
       setActiveTab("summary");
-    } catch {
-      const localData = synthesizeFromTextLocally(cleanText || `Visual Study Material: ${activeFilename}. Analyze key diagrams, labels, and core mechanisms.`, activeFilename);
-      setStudyData(localData);
-      saveDeckToLibrary(localData);
-      setActiveTab("summary");
+    } catch (err: any) {
+      alert(err.message);
     } finally {
       setIsSynthesizing(false);
     }
-  };
-
-  const handleSynthesize = async () => {
-    await runSynthesis(uploadedFile, sourceText);
   };
 
   const handleAnswerSelect = (index: number) => {
