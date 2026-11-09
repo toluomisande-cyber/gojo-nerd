@@ -65,24 +65,59 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const { message, documentContext, history } = body;
+    const { message, documentContext, history, userMemory } = body;
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'Message cannot be empty.' });
     }
+
+    // Detect explicit memory storage commands from the user message
+    let autoSavedMemory = null;
+    const memMatch = String(message).trim().match(/^(?:please\s+)?(?:remember(?:\s+that)?|save(?:\s+to\s+memory)?|store(?:\s+in\s+memory)?|note\s+that|keep\s+in\s+mind(?:\s+that)?|my\s+exam\s+is|i\s+struggle\s+with)\s*[:,-]?\s*(.+)$/i);
+    if (memMatch && memMatch[1] && memMatch[1].trim().length > 3) {
+      const lowerMsg = String(message).toLowerCase();
+      const isExam = /exam|midterm|final|quiz|test|date/i.test(lowerMsg);
+      const isWeak = /struggle|confus|hard|weak|miss/i.test(lowerMsg);
+      autoSavedMemory = {
+        id: `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        category: isExam ? 'exam_focus' : isWeak ? 'weak_spot' : 'note',
+        content: String(message).trim(),
+        source: 'Document assistant',
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    const memoryContextLines = [];
+    if (userMemory && typeof userMemory === 'object') {
+      if (userMemory.name || userMemory.major) {
+        memoryContextLines.push(`Student: ${userMemory.name || 'Student'} (${userMemory.major || 'General studies'})`);
+      }
+      if (Array.isArray(userMemory.memories) && userMemory.memories.length > 0) {
+        const formatted = userMemory.memories
+          .slice(0, 25)
+          .map((m) => `- [${m.category || 'note'}] ${m.content} (${m.source || 'Saved'})`)
+          .join('\n');
+        memoryContextLines.push(`Stored User Memories & Weak Spots:\n${formatted}`);
+      }
+    }
+    const memoryBlock = memoryContextLines.length > 0
+      ? `\n\nINTEGRATED STUDENT MEMORY (Use this to personalize explanations and connect to the student's stored notes, exam focus, and past weak spots):\n"""\n${memoryContextLines.join('\n\n')}\n"""`
+      : '';
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const reply = await executeWithModelFallback(
       genAI,
       {
         temperature: 0.4,
-        systemInstruction: `You are Gojo from Gojo.nerd, an academic syllabus and research partner.
-Base all answers strictly on the provided DOCUMENT CONTEXT below.
+        systemInstruction: `You are Gojo from Gojo.nerd, an academic syllabus and research partner with integrated personal memory for the current student.
+Base your academic explanations on the provided DOCUMENT CONTEXT and INTEGRATED STUDENT MEMORY below.
+If the student asks about their stored memories, weak spots, or notes, reference their INTEGRATED STUDENT MEMORY directly.
+If the student tells you to remember a preference, exam date, or note, confirm that you have stored it in their personal memory ledger.
 Keep responses concise (2 to 3 punchy paragraphs max).
 
 DOCUMENT CONTEXT:
 """
 ${(documentContext || '').slice(0, 50000)}
-"""`,
+"""${memoryBlock}`,
       },
       async (model) => {
         const chat = model.startChat({
@@ -96,7 +131,7 @@ ${(documentContext || '').slice(0, 50000)}
       }
     );
 
-    return res.status(200).json({ reply });
+    return res.status(200).json({ reply, autoSavedMemory });
   } catch (err) {
     console.error('Vercel Chat Error:', err);
     return res.status(500).json({ error: err.message || 'Failed to contact assistant.' });

@@ -267,6 +267,27 @@ module.exports = async function handler(req, res) {
       );
     }
 
+    let userMemoryBlock = '';
+    if (fields.userMemory && typeof fields.userMemory === 'object') {
+      const um = fields.userMemory;
+      const lines = [];
+      if (um.name || um.major) {
+        lines.push(`Student: ${um.name || 'Student'} (${um.major || 'Course'})`);
+      }
+      if (Array.isArray(um.memories) && um.memories.length > 0) {
+        lines.push(
+          'Student Memory & Past Weak Spots:\n' +
+            um.memories
+              .slice(0, 12)
+              .map((m) => `- [${m.category || 'note'}] ${m.content}`)
+              .join('\n')
+        );
+      }
+      if (lines.length > 0) {
+        userMemoryBlock = `\n\nSTUDENT MEMORY CONTEXT (Tailor the Professor's Exam Insight and diagnostic questions to reinforce these areas when relevant to the uploaded slides):\n${lines.join('\n')}`;
+      }
+    }
+
     const parsedData = await executeWithModelFallback(
       genAI,
       {
@@ -275,7 +296,7 @@ module.exports = async function handler(req, res) {
           temperature: 0.25,
           maxOutputTokens: 4000,
         },
-        systemInstruction: `You are Gojo.nerd, an elite academic synthesis engine powered by the Six Eyes.
+        systemInstruction: `You are Gojo.nerd, an elite academic synthesis engine powered by the Six Eyes.${userMemoryBlock}
 Your mission is to perform a rigorous, end-to-end scan of the entire uploaded study material across all slides and pages.
 
 NON-NEGOTIABLE QUANTITY & COVERAGE REQUIREMENTS:

@@ -37,6 +37,21 @@ interface ChatMessage {
   attachment?: string;
 }
 
+export interface MemoryItem {
+  id: string;
+  category: "note" | "exam_focus" | "weak_spot" | "preference";
+  content: string;
+  source: string;
+  createdAt: string;
+}
+
+export interface SavedSyllabus {
+  id: string;
+  filename: string;
+  studyData: StudyPayload;
+  updatedAt: string;
+}
+
 export interface StudentProfile {
   id: string;
   name: string;
@@ -210,7 +225,7 @@ const initialPayload: StudyPayload = {
 
 export default function AcademicWorkspace() {
   // Navigation & State
-  const [activeTab, setActiveTab] = useState<"summary" | "arena" | "cards" | "chat" | "source">("summary");
+  const [activeTab, setActiveTab] = useState<"summary" | "arena" | "cards" | "chat" | "memory" | "source">("summary");
   const [studyData, setStudyData] = useState<StudyPayload>(initialPayload);
   const [sourceText, setSourceText] = useState<string>("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -234,6 +249,21 @@ export default function AcademicWorkspace() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   const [authTab, setAuthTab] = useState<"login" | "enroll">("login");
 
+  // Integrated User Memory State
+  const [userMemories, setUserMemories] = useState<MemoryItem[]>([]);
+  const [userLibrary, setUserLibrary] = useState<SavedSyllabus[]>([
+    {
+      id: "deck_initial",
+      filename: initialPayload.filename,
+      studyData: initialPayload,
+      updatedAt: new Date().toISOString(),
+    },
+  ]);
+  const [memoryFilter, setMemoryFilter] = useState<"all" | "weak_spot" | "exam_focus" | "note">("all");
+  const [manualMemoryCategory, setManualMemoryCategory] = useState<MemoryItem["category"]>("note");
+  const [manualMemoryInput, setManualMemoryInput] = useState<string>("");
+  const [memorySyncStatus, setMemorySyncStatus] = useState<string>("Synced");
+
   // Sign In inputs
   const [loginIdentifier, setLoginIdentifier] = useState<string>("");
   const [loginPin, setLoginPin] = useState<string>("");
@@ -246,6 +276,37 @@ export default function AcademicWorkspace() {
   const [enrollPin, setEnrollPin] = useState<string>("");
   const [enrollError, setEnrollError] = useState<string>("");
 
+  const syncMemoryWithServer = async (
+    userKey: string,
+    studentProfile: StudentProfile | null,
+    nextMemories: MemoryItem[],
+    nextLibrary: SavedSyllabus[],
+    action = "sync",
+    extra: Record<string, any> = {}
+  ) => {
+    setMemorySyncStatus("Syncing...");
+    try {
+      const res = await fetch("/api/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          userId: userKey,
+          profile: studentProfile || { id: userKey, name: "Guest session", major: "Unregistered desk" },
+          memories: nextMemories,
+          library: nextLibrary,
+          stats: studentProfile?.stats || {},
+          activeDeck: studyData,
+          ...extra,
+        }),
+      });
+      if (res.ok) setMemorySyncStatus("Synced to user record");
+      else setMemorySyncStatus("Saved locally");
+    } catch {
+      setMemorySyncStatus("Saved locally");
+    }
+  };
+
   const loadStudentDesk = (student: StudentProfile) => {
     try {
       const savedStudy = localStorage.getItem(`gojo_desk_study_${student.id}`);
@@ -255,7 +316,99 @@ export default function AcademicWorkspace() {
           setStudyData(parsed);
         }
       }
+      const rawMem = localStorage.getItem(`gojo_user_memories_${student.id}`);
+      if (rawMem) {
+        const parsedMem = JSON.parse(rawMem);
+        if (Array.isArray(parsedMem)) setUserMemories(parsedMem);
+      } else {
+        setUserMemories([]);
+      }
+      const rawLib = localStorage.getItem(`gojo_user_library_${student.id}`);
+      if (rawLib) {
+        const parsedLib = JSON.parse(rawLib);
+        if (Array.isArray(parsedLib) && parsedLib.length > 0) setUserLibrary(parsedLib);
+      }
     } catch (e) {}
+
+    fetch(`/api/memory?userId=${encodeURIComponent(student.id)}&email=${encodeURIComponent(student.email || "")}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.user) {
+          if (Array.isArray(data.user.memories) && data.user.memories.length > 0) {
+            setUserMemories((prev) => (prev.length === 0 ? data.user.memories : prev));
+          }
+          if (Array.isArray(data.user.library) && data.user.library.length > 0) {
+            setUserLibrary((prev) => (prev.length <= 1 ? data.user.library : prev));
+          }
+        }
+      })
+      .catch(() => {});
+  };
+
+  const addMemoryEntry = (
+    category: MemoryItem["category"],
+    content: string,
+    source: string
+  ) => {
+    const clean = content.trim();
+    if (!clean) return;
+    const key = currentStudent?.id || "guest_session";
+    setUserMemories((prev) => {
+      if (prev.some((m) => m.content.trim().toLowerCase() === clean.toLowerCase())) return prev;
+      const entry: MemoryItem = {
+        id: `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        category,
+        content: clean,
+        source: source || studyData.filename || "Study desk",
+        createdAt: new Date().toISOString(),
+      };
+      const next = [entry, ...prev].slice(0, 200);
+      try {
+        localStorage.setItem(`gojo_user_memories_${key}`, JSON.stringify(next));
+      } catch {}
+      void syncMemoryWithServer(key, currentStudent, next, userLibrary, "add_memory", { memory: entry });
+      return next;
+    });
+  };
+
+  const deleteMemoryEntry = (id: string) => {
+    const key = currentStudent?.id || "guest_session";
+    setUserMemories((prev) => {
+      const next = prev.filter((m) => m.id !== id);
+      try {
+        localStorage.setItem(`gojo_user_memories_${key}`, JSON.stringify(next));
+      } catch {}
+      void syncMemoryWithServer(key, currentStudent, next, userLibrary, "delete_memory", { memoryId: id });
+      return next;
+    });
+  };
+
+  const clearAllUserMemories = () => {
+    const key = currentStudent?.id || "guest_session";
+    setUserMemories([]);
+    try {
+      localStorage.setItem(`gojo_user_memories_${key}`, JSON.stringify([]));
+    } catch {}
+    void syncMemoryWithServer(key, currentStudent, [], userLibrary, "clear_memories");
+  };
+
+  const saveDeckToLibrary = (deckPayload: StudyPayload) => {
+    const key = currentStudent?.id || "guest_session";
+    setUserLibrary((prev) => {
+      const filtered = prev.filter((d) => d.filename !== deckPayload.filename);
+      const entry: SavedSyllabus = {
+        id: `deck_${Date.now()}`,
+        filename: deckPayload.filename,
+        studyData: deckPayload,
+        updatedAt: new Date().toISOString(),
+      };
+      const next = [entry, ...filtered].slice(0, 30);
+      try {
+        localStorage.setItem(`gojo_user_library_${key}`, JSON.stringify(next));
+      } catch {}
+      void syncMemoryWithServer(key, currentStudent, userMemories, next, "save_deck", { deck: entry });
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -709,17 +862,20 @@ export default function AcademicWorkspace() {
           setSourceText(result.extractedText || apiData.extractedText);
         }
         const fallback = synthesizeFromTextLocally(resolvedText, activeFilename);
-        setStudyData({
+        const nextDeck: StudyPayload = {
           filename: activeFilename,
           takeaways: Array.isArray(apiData.takeaways) && apiData.takeaways.length ? apiData.takeaways : fallback.takeaways,
           terms: Array.isArray(apiData.terms) && apiData.terms.length ? apiData.terms : fallback.terms,
           trap: apiData.trap || fallback.trap,
           questions: Array.isArray(apiData.questions) && apiData.questions.length ? apiData.questions : fallback.questions,
           cards: Array.isArray(apiData.cards) && apiData.cards.length ? apiData.cards : fallback.cards,
-        });
+        };
+        setStudyData(nextDeck);
+        saveDeckToLibrary(nextDeck);
       } else {
         const localData = synthesizeFromTextLocally(cleanText || `Visual Study Material: ${activeFilename}. Analyze key diagrams, labels, and core mechanisms.`, activeFilename);
         setStudyData(localData);
+        saveDeckToLibrary(localData);
       }
       setCurrentQIndex(0);
       setSelectedAnswer(null);
@@ -732,6 +888,7 @@ export default function AcademicWorkspace() {
     } catch {
       const localData = synthesizeFromTextLocally(cleanText || `Visual Study Material: ${activeFilename}. Analyze key diagrams, labels, and core mechanisms.`, activeFilename);
       setStudyData(localData);
+      saveDeckToLibrary(localData);
       setActiveTab("summary");
     } finally {
       setIsSynthesizing(false);
@@ -746,9 +903,16 @@ export default function AcademicWorkspace() {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(index);
     setAnsweredCount((prev) => prev + 1);
-    const isCorrect = index === studyData.questions[currentQIndex].correct;
+    const qObj = studyData.questions[currentQIndex];
+    const isCorrect = index === qObj.correct;
     if (isCorrect) {
       setArenaScore((prev) => prev + 1);
+    } else if (qObj) {
+      addMemoryEntry(
+        "weak_spot",
+        `Missed check: ${qObj.q} — Correct: ${qObj.options[qObj.correct]} (${qObj.critique || "Review slide context"})`,
+        `Active recall · ${studyData.filename}`
+      );
     }
     if (currentStudent) {
       const nextStats = {
@@ -801,6 +965,19 @@ export default function AcademicWorkspace() {
     setChatInput("");
     setIsChatThinking(true);
 
+    const memCmdMatch = userQuery.match(
+      /^(?:please\s+)?(?:remember(?:\s+that)?|save(?:\s+to\s+memory)?|store(?:\s+in\s+memory)?|note\s+that|keep\s+in\s+mind(?:\s+that)?|my\s+exam\s+is|i\s+struggle\s+with)\s*[:,-]?\s*(.+)$/i
+    );
+    if (memCmdMatch && memCmdMatch[1] && memCmdMatch[1].trim().length > 3) {
+      const lowerQ = userQuery.toLowerCase();
+      const cat: MemoryItem["category"] = /exam|midterm|final|quiz|test|date/i.test(lowerQ)
+        ? "exam_focus"
+        : /struggle|confus|hard|weak|miss/i.test(lowerQ)
+        ? "weak_spot"
+        : "note";
+      addMemoryEntry(cat, userQuery, "Document assistant");
+    }
+
     const contextStr =
       sourceText.trim() ||
       `${studyData.trap}\n${studyData.takeaways.map((t) => `${t.concept}: ${t.desc}`).join("\n")}`;
@@ -813,6 +990,11 @@ export default function AcademicWorkspace() {
         body: JSON.stringify({
           message: userQuery,
           documentContext: contextStr,
+          userMemory: {
+            name: currentStudent?.name || "Student",
+            major: currentStudent?.major || "",
+            memories: userMemories.slice(0, 25),
+          },
           history: updatedHistory.slice(0, -1).map((m) => ({
             role: m.role === "user" ? "user" : "model",
             content: m.content,
@@ -820,6 +1002,13 @@ export default function AcademicWorkspace() {
         }),
       });
       const data = await res.json().catch(() => null);
+      if (data?.autoSavedMemory?.content) {
+        addMemoryEntry(
+          data.autoSavedMemory.category || "note",
+          data.autoSavedMemory.content,
+          data.autoSavedMemory.source || "Document assistant"
+        );
+      }
       if (res.ok && data && data.reply) {
         replyText = data.reply;
       }
@@ -828,20 +1017,24 @@ export default function AcademicWorkspace() {
     }
 
     if (!replyText) {
-      const queryWords = userQuery
-        .toLowerCase()
-        .split(/\W+/)
-        .filter((w) => w.length > 3);
-      const sentences = contextStr
-        .split(/(?<=[.!?])\s+|\n+/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 20);
-      const bestMatch =
-        sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
-        studyData.takeaways[0]?.desc ||
-        studyData.trap;
+      if (memCmdMatch && memCmdMatch[1]) {
+        replyText = `Stored in your personal memory ledger: "${userQuery}". I will keep this in context across your study sessions and recall drills.`;
+      } else {
+        const queryWords = userQuery
+          .toLowerCase()
+          .split(/\W+/)
+          .filter((w) => w.length > 3);
+        const sentences = contextStr
+          .split(/(?<=[.!?])\s+|\n+/)
+          .map((s) => s.trim())
+          .filter((s) => s.length > 20);
+        const bestMatch =
+          sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
+          studyData.takeaways[0]?.desc ||
+          studyData.trap;
 
-      replyText = `From "${studyData.filename}": ${bestMatch}`;
+        replyText = `From "${studyData.filename}": ${bestMatch}`;
+      }
     }
 
     setIsChatThinking(false);
@@ -1033,11 +1226,12 @@ export default function AcademicWorkspace() {
                 { id: "arena", label: "Active Recall Drills" },
                 { id: "cards", label: "Flashcards" },
                 { id: "chat", label: "Document Assistant" },
+                { id: "memory", label: `Personal Memory (${userMemories.length})` },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`h-full px-1 text-xs transition-all flex items-center ${
+                  className={`h-full px-1 text-xs transition-all flex items-center tabular-nums ${
                     activeTab === tab.id
                       ? "border-b-2 border-[#0F3470] text-[#0F3470] font-bold"
                       : "text-[#64748B] hover:text-[#0F3470] font-medium"
@@ -1048,8 +1242,8 @@ export default function AcademicWorkspace() {
               ))}
             </div>
 
-            <div className="text-[11px] font-mono text-[#64748B]">
-              CONTEXT: <span className="px-2 py-0.5 rounded bg-[#E4F1FF] text-[#0F3470] font-semibold border border-[#C5DFFF]">ACADEMIC RIGOR</span>
+            <div className="text-[11px] font-mono text-[#64748B] tabular-nums">
+              CONTEXT: <span className="px-2 py-0.5 rounded bg-[#E4F1FF] text-[#0F3470] font-semibold border border-[#C5DFFF]">USER MEMORY ({userMemories.length})</span>
             </div>
           </div>
 
@@ -1085,7 +1279,16 @@ export default function AcademicWorkspace() {
                       </svg>
                       <span>Professor's Exam Insight</span>
                     </div>
-                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">KEY NUANCE</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => addMemoryEntry("exam_focus", studyData.trap, `Exam insight · ${studyData.filename}`)}
+                        className="text-[11px] font-medium px-2.5 py-0.5 rounded bg-white/90 hover:bg-white text-amber-950 border border-amber-300 transition-colors"
+                      >
+                        Save to memory
+                      </button>
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">KEY NUANCE</span>
+                    </div>
                   </div>
                   <p className="text-xs sm:text-[13px] text-amber-950/90 mt-2.5 leading-relaxed font-sans">{studyData.trap}</p>
                 </div>
@@ -1097,15 +1300,32 @@ export default function AcademicWorkspace() {
                     <span className="text-[11px] font-mono text-[#0F3470] font-semibold">{studyData.takeaways.length} High-Yield Pillars</span>
                   </div>
                   <div className="divide-y divide-[#E2E8F0]">
-                    {studyData.takeaways.map((item) => (
-                      <div key={item.num} className="p-5 flex gap-4">
-                        <span className="font-mono text-xs px-2 py-0.5 h-fit rounded bg-[#0F3470] text-white font-semibold shrink-0 mt-0.5">{item.num}</span>
-                        <div>
-                          <h4 className="text-xs font-bold text-[#0F3470] font-mono">{item.concept}</h4>
-                          <p className="text-xs text-[#64748B] mt-1 leading-relaxed">{item.desc}</p>
+                    {studyData.takeaways.map((item) => {
+                      const combined = `${item.concept}: ${item.desc}`;
+                      const isSaved = userMemories.some((m) => m.content.toLowerCase() === combined.toLowerCase());
+                      return (
+                        <div key={item.num} className="p-5 flex items-start justify-between gap-4">
+                          <div className="flex gap-4 min-w-0">
+                            <span className="font-mono text-xs px-2 py-0.5 h-fit rounded bg-[#0F3470] text-white font-semibold shrink-0 mt-0.5 tabular-nums">{item.num}</span>
+                            <div>
+                              <h4 className="text-xs font-bold text-[#0F3470] font-mono">{item.concept}</h4>
+                              <p className="text-xs text-[#64748B] mt-1 leading-relaxed">{item.desc}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addMemoryEntry("note", combined, `Syllabus pillar ${item.num} · ${studyData.filename}`)}
+                            className={`shrink-0 px-2.5 py-1 rounded-md border text-[11px] font-medium transition-colors ${
+                              isSaved
+                                ? "bg-[#ECEFF4] border-[#0F3470]/20 text-[#0F3470]"
+                                : "bg-white border-[#111827]/[0.1] text-[#4B5565] hover:text-[#111827] hover:bg-[#F5F7FA]"
+                            }`}
+                          >
+                            {isSaved ? "Saved in memory" : "Save to memory"}
+                          </button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1573,6 +1793,213 @@ export default function AcademicWorkspace() {
               </div>
             )}
 
+            {/* 6. INTEGRATED PERSONAL MEMORY VIEW */}
+            {activeTab === "memory" && (
+              <div className="max-w-3xl space-y-6 font-sans text-[#111827]">
+                <div className="bg-white rounded-xl border border-[#111827]/[0.08] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <h2 className="font-serif text-xl font-semibold text-[#111827] tracking-[-0.02em]">
+                        {currentStudent ? `${currentStudent.name}'s memory ledger` : "Session memory ledger"}
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-md bg-[#ECEFF4] text-[#0F3470] font-mono text-[11px] font-medium tabular-nums">
+                        {memorySyncStatus}
+                      </span>
+                    </div>
+                    <p className="text-[13px] leading-[19px] text-[#4B5565] mt-1">
+                      Stores your course notes, exam focus, missed recall checks, and uploaded syllabi. Automatically used by the Document Assistant and synthesis engine.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearAllUserMemories}
+                    className="h-8 px-3 rounded-lg border border-[#111827]/[0.1] bg-white hover:bg-[#F5F7FA] text-[#4B5565] hover:text-[#111827] text-xs font-medium transition-colors shrink-0 self-start sm:self-center"
+                  >
+                    Clear notes
+                  </button>
+                </div>
+
+                {/* Add Manual Memory Form */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!manualMemoryInput.trim()) return;
+                    addMemoryEntry(manualMemoryCategory, manualMemoryInput.trim(), "Manual note");
+                    setManualMemoryInput("");
+                  }}
+                  className="bg-white rounded-xl border border-[#111827]/[0.08] p-5 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-medium text-[#111827]">
+                      Store information in your memory
+                    </label>
+                    <span className="text-xs text-[#6B7487]">Included in every assistant &amp; synthesis session</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <select
+                      value={manualMemoryCategory}
+                      onChange={(e) => setManualMemoryCategory(e.target.value as MemoryItem["category"])}
+                      className="h-10 px-3 rounded-lg border border-[#111827]/[0.12] bg-[#F5F7FA] text-[13px] text-[#111827] font-medium focus:outline-none focus:border-[#0F3470] shrink-0"
+                    >
+                      <option value="note">Course note</option>
+                      <option value="exam_focus">Exam focus</option>
+                      <option value="weak_spot">Weak spot</option>
+                      <option value="preference">Study preference</option>
+                    </select>
+                    <input
+                      type="text"
+                      required
+                      value={manualMemoryInput}
+                      onChange={(e) => setManualMemoryInput(e.target.value)}
+                      placeholder="e.g., Midterm on Nov 18 covers slides 1–42; professor emphasizes Complex IV inhibitors..."
+                      className="flex-1 h-10 px-3.5 rounded-lg border border-[#111827]/[0.12] bg-white text-[13px] text-[#111827] placeholder:text-[#6B7487] focus:outline-none focus:border-[#0F3470]"
+                    />
+                    <button
+                      type="submit"
+                      className="h-10 px-4 rounded-lg bg-[#0F3470] hover:bg-[#163f82] text-white text-[13px] font-medium transition-colors shrink-0"
+                    >
+                      Store in memory
+                    </button>
+                  </div>
+                </form>
+
+                {/* Stored Memory Items */}
+                <div className="bg-white rounded-xl border border-[#111827]/[0.08] overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-[#111827]/[0.08] bg-[#F5F7FA]/60 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-medium text-[#111827]">Stored facts &amp; recall notes</span>
+                      <span className="font-mono text-[11px] text-[#6B7487] tabular-nums">
+                        {userMemories.length} {userMemories.length === 1 ? "item" : "items"}
+                      </span>
+                    </div>
+                    <div className="p-1 rounded-lg bg-[#ECEFF4] border border-[#111827]/[0.06] flex items-center gap-1 text-xs">
+                      {(
+                        [
+                          { id: "all", label: "All" },
+                          { id: "weak_spot", label: "Weak spots" },
+                          { id: "exam_focus", label: "Exam focus" },
+                          { id: "note", label: "Notes" },
+                        ] as const
+                      ).map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setMemoryFilter(f.id)}
+                          className={
+                            memoryFilter === f.id
+                              ? "px-2.5 py-1 rounded-[5px] bg-white text-[#111827] font-medium transition-colors shadow-2xs"
+                              : "px-2.5 py-1 rounded-[5px] text-[#4B5565] hover:text-[#111827] font-medium transition-colors"
+                          }
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="divide-y divide-[#111827]/[0.08]">
+                    {(memoryFilter === "all"
+                      ? userMemories
+                      : userMemories.filter((m) => m.category === memoryFilter)
+                    ).length === 0 ? (
+                      <div className="p-8 text-center">
+                        <div className="text-sm font-medium text-[#111827]">No stored memories in this view yet</div>
+                        <p className="text-[13px] text-[#6B7487] mt-1 max-w-md mx-auto">
+                          Add a note above, click &ldquo;Save to memory&rdquo; on any syllabus mechanism, tell the Document Assistant &ldquo;Remember that...&rdquo;, or complete Active Recall drills to automatically log weak spots.
+                        </p>
+                      </div>
+                    ) : (
+                      (memoryFilter === "all"
+                        ? userMemories
+                        : userMemories.filter((m) => m.category === memoryFilter)
+                      ).map((m) => {
+                        const badgeMap: Record<string, { label: string; cls: string }> = {
+                          weak_spot: { label: "Weak spot", cls: "bg-[#FEF2F2] text-[#B91C1C] border-[#B91C1C]/20" },
+                          exam_focus: { label: "Exam focus", cls: "bg-[#FFFBEB] text-[#B45309] border-[#B45309]/20" },
+                          preference: { label: "Preference", cls: "bg-[#ECEFF4] text-[#0F3470] border-[#0F3470]/20" },
+                          note: { label: "Course note", cls: "bg-[#ECEFF4] text-[#111827] border-[#111827]/[0.1]" },
+                        };
+                        const badge = badgeMap[m.category] || badgeMap.note;
+                        return (
+                          <div
+                            key={m.id}
+                            className="p-4 sm:p-5 flex items-start justify-between gap-4 hover:bg-[#F5F7FA]/50 transition-colors"
+                          >
+                            <div className="space-y-1.5 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded-[5px] border text-[11px] font-medium ${badge.cls}`}>
+                                  {badge.label}
+                                </span>
+                                <span className="font-mono text-[11px] text-[#6B7487] truncate">{m.source}</span>
+                              </div>
+                              <p className="text-[13px] leading-[20px] text-[#111827]">{m.content}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => deleteMemoryEntry(m.id)}
+                              className="text-xs text-[#6B7487] hover:text-[#DC2626] px-2 py-1 rounded-md hover:bg-[#FEF2F2] transition-colors shrink-0"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Saved Syllabi Library */}
+                <div className="bg-white rounded-xl border border-[#111827]/[0.08] overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-[#111827]/[0.08] bg-[#F5F7FA]/60 flex items-center justify-between">
+                    <span className="text-[13px] font-medium text-[#111827]">Saved syllabi in user memory</span>
+                    <span className="font-mono text-[11px] text-[#6B7487] tabular-nums">
+                      {userLibrary.length} {userLibrary.length === 1 ? "syllabus" : "syllabi"}
+                    </span>
+                  </div>
+                  <div className="divide-y divide-[#111827]/[0.08]">
+                    {userLibrary.map((deck) => {
+                      const isCurrent = studyData.filename === deck.filename;
+                      return (
+                        <div key={deck.id} className="p-4 sm:px-5 flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[13px] font-medium text-[#111827] truncate">
+                                {deck.filename}
+                              </span>
+                              {isCurrent && (
+                                <span className="px-2 py-0.5 rounded-[5px] bg-[#ECEFF4] text-[#0F3470] font-mono text-[10px] font-medium">
+                                  Active on desk
+                                </span>
+                              )}
+                            </div>
+                            <div className="font-mono text-[11px] text-[#6B7487] tabular-nums mt-0.5">
+                              {deck.studyData.takeaways.length} mechanisms · {deck.studyData.questions.length} recall checks
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStudyData(deck.studyData);
+                              setCurrentQIndex(0);
+                              setSelectedAnswer(null);
+                              setArenaScore(0);
+                              setAnsweredCount(0);
+                              setQuizFinished(false);
+                              setCurrentCardIndex(0);
+                              setIsFlipped(false);
+                              setActiveTab("summary");
+                            }}
+                            className="h-8 px-3 rounded-lg border border-[#111827]/[0.12] bg-white hover:bg-[#ECEFF4] text-[#111827] text-xs font-medium transition-colors shrink-0"
+                          >
+                            {isCurrent ? "Reload" : "Open syllabus"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         </main>
 
@@ -1585,6 +2012,7 @@ export default function AcademicWorkspace() {
           { id: "arena", label: "Drills", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
           { id: "cards", label: "Cards", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
           { id: "chat", label: "Sensei", icon: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" },
+          { id: "memory", label: "Memory", icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" },
           { id: "source", label: "Upload", icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" },
         ].map((item) => {
           const isActive = activeTab === item.id;
@@ -1967,7 +2395,7 @@ export default function AcademicWorkspace() {
             {/* Progress Figures (Tabular Nums, No Emojis) */}
             <div className="p-5 bg-[#F5F7FA] border-b border-[#111827]/[0.08]">
               <div className="text-xs font-medium text-[#4B5565] mb-3">Study progress</div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="bg-white p-3 rounded-lg border border-[#111827]/[0.08]">
                   <div className="text-[11px] text-[#6B7487]">Syllabi indexed</div>
                   <div className="text-lg font-semibold font-mono text-[#111827] mt-1 tabular-nums">
@@ -1992,12 +2420,28 @@ export default function AcademicWorkspace() {
                     {currentStudent.stats?.cardsMastered || 0}
                   </div>
                 </div>
+                <div className="bg-white p-3 rounded-lg border border-[#111827]/[0.08]">
+                  <div className="text-[11px] text-[#6B7487]">Memories stored</div>
+                  <div className="text-lg font-semibold font-mono text-[#0F3470] mt-1 tabular-nums">
+                    {userMemories.length}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Actions */}
             <div className="p-4 bg-white flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileModalOpen(false);
+                    setActiveTab("memory");
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-[#111827]/[0.12] bg-white hover:bg-[#F5F7FA] text-[#0F3470] text-xs font-medium transition-colors"
+                >
+                  Open memory
+                </button>
                 <button
                   type="button"
                   onClick={() => {

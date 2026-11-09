@@ -22,6 +22,7 @@ if (fs.existsSync(envPath)) {
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const analyzeHandler = require('./api/analyze');
 const chatHandler = require('./api/chat');
+const memoryHandler = require('./api/memory');
 
 const PORT = process.env.PORT || 4100;
 
@@ -49,6 +50,10 @@ const server = http.createServer(async (req, res) => {
 
   if (urlPath === '/api/chat' && req.method === 'POST') {
     return chatHandler(req, enhanceResponse(res));
+  }
+
+  if (urlPath === '/api/memory') {
+    return memoryHandler(req, enhanceResponse(res));
   }
 
   // Static file serving

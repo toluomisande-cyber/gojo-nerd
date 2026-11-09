@@ -283,10 +283,18 @@
           >
             Document Assistant
           </button>
+          <button
+            id="tab-btn-memory"
+            onclick="setActiveTab('memory')"
+            class="h-full px-1 text-xs transition-all flex items-center gap-1.5 text-[#64748B] hover:text-brandNavy font-medium"
+          >
+            <span>Personal Memory</span>
+            <span id="memory-tab-count" class="px-1.5 py-0.5 rounded bg-[#ECEFF4] text-[#0F3470] font-mono text-[10px] font-medium tabular-nums">0</span>
+          </button>
         </div>
 
         <div class="text-[11px] font-mono text-[#64748B]">
-          CONTEXT: <span class="px-2 py-0.5 rounded bg-brandSky text-brandNavy font-semibold border border-[#C5DFFF]">ACADEMIC RIGOR</span>
+          CONTEXT: <span id="tab-strip-memory-badge" class="px-2 py-0.5 rounded bg-brandSky text-brandNavy font-semibold border border-[#C5DFFF]">USER MEMORY ACTIVE</span>
         </div>
       </div>
 
@@ -321,7 +329,16 @@
                 </svg>
                 <span>Professor's Exam Insight</span>
               </div>
-              <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">KEY NUANCE</span>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  onclick="saveTrapToMemory()"
+                  class="text-[11px] font-medium px-2.5 py-0.5 rounded bg-white/90 hover:bg-white text-amber-950 border border-amber-300 transition-colors"
+                >
+                  Save to memory
+                </button>
+                <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">KEY NUANCE</span>
+              </div>
             </div>
             <p id="summary-trap" class="text-xs sm:text-[13px] text-amber-950/90 mt-2.5 leading-relaxed font-sans"></p>
           </div>
@@ -580,6 +597,95 @@
           </div>
         </div>
 
+        <!-- 6. INTEGRATED PERSONAL MEMORY VIEW -->
+        <div id="view-memory" class="hidden max-w-3xl space-y-6 font-sans text-[#111827]">
+          <!-- Top Memory Header Card -->
+          <div class="bg-white rounded-[12px] border border-[#111827]/[0.08] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2.5">
+                <h2 id="memory-owner-heading" class="font-serif text-[20px] leading-[26px] font-semibold text-[#111827] tracking-[-0.02em]">
+                  Personal memory ledger
+                </h2>
+                <span id="memory-sync-badge" class="px-2 py-0.5 rounded-[6px] bg-[#ECEFF4] text-[#0F3470] font-mono text-[11px] font-medium tabular-nums">
+                  Synced
+                </span>
+              </div>
+              <p id="memory-owner-subhead" class="text-[13px] leading-[19px] text-[#4B5565] mt-1">
+                Stores your course notes, exam focus, missed recall checks, and uploaded syllabi. Automatically used by the Document Assistant and synthesis engine.
+              </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onclick="clearAllUserMemories()"
+                class="h-8 px-3 rounded-[8px] border border-[#111827]/[0.1] bg-white hover:bg-[#F5F7FA] text-[#4B5565] hover:text-[#111827] text-[12px] font-medium transition-colors"
+              >
+                Clear notes
+              </button>
+            </div>
+          </div>
+
+          <!-- Store New Info Form -->
+          <form onsubmit="handleAddManualMemory(event)" class="bg-white rounded-[12px] border border-[#111827]/[0.08] p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <label for="manual-memory-input" class="text-[13px] font-medium text-[#111827]">
+                Store information in your memory
+              </label>
+              <span class="text-[12px] text-[#6B7487]">Included in every assistant &amp; synthesis session</span>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2.5">
+              <select
+                id="manual-memory-category"
+                class="h-10 px-3 rounded-[8px] border border-[#111827]/[0.12] bg-[#F5F7FA] text-[13px] text-[#111827] font-medium focus:outline-none focus:border-[#0F3470] shrink-0"
+              >
+                <option value="note">Course note</option>
+                <option value="exam_focus">Exam focus</option>
+                <option value="weak_spot">Weak spot</option>
+                <option value="preference">Study preference</option>
+              </select>
+              <input
+                type="text"
+                id="manual-memory-input"
+                required
+                placeholder="e.g., Midterm on Nov 18 covers slides 1–42; professor emphasizes Complex IV inhibitors..."
+                class="flex-1 h-10 px-3.5 rounded-[8px] border border-[#111827]/[0.12] bg-white text-[13px] text-[#111827] placeholder:text-[#6B7487] focus:outline-none focus:border-[#0F3470]"
+              />
+              <button
+                type="submit"
+                class="h-10 px-4 rounded-[8px] bg-[#0F3470] hover:bg-[#163f82] text-white text-[13px] font-medium transition-colors shrink-0"
+              >
+                Store in memory
+              </button>
+            </div>
+          </form>
+
+          <!-- Stored Memory Entries Section -->
+          <div class="bg-white rounded-[12px] border border-[#111827]/[0.08] overflow-hidden">
+            <div class="px-5 py-3.5 border-b border-[#111827]/[0.08] bg-[#F5F7FA]/60 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <span class="text-[13px] font-medium text-[#111827]">Stored facts &amp; recall notes</span>
+                <span id="memory-total-pill" class="font-mono text-[11px] text-[#6B7487] tabular-nums">0 items</span>
+              </div>
+              <div class="p-1 rounded-[8px] bg-[#ECEFF4] border border-[#111827]/[0.06] flex items-center gap-1 text-[12px]">
+                <button type="button" id="mem-filter-all" onclick="setMemoryFilter('all')" class="px-2.5 py-1 rounded-[5px] bg-white text-[#111827] font-medium transition-colors">All</button>
+                <button type="button" id="mem-filter-weak_spot" onclick="setMemoryFilter('weak_spot')" class="px-2.5 py-1 rounded-[5px] text-[#4B5565] hover:text-[#111827] font-medium transition-colors">Weak spots</button>
+                <button type="button" id="mem-filter-exam_focus" onclick="setMemoryFilter('exam_focus')" class="px-2.5 py-1 rounded-[5px] text-[#4B5565] hover:text-[#111827] font-medium transition-colors">Exam focus</button>
+                <button type="button" id="mem-filter-note" onclick="setMemoryFilter('note')" class="px-2.5 py-1 rounded-[5px] text-[#4B5565] hover:text-[#111827] font-medium transition-colors">Notes</button>
+              </div>
+            </div>
+            <div id="memory-items-list" class="divide-y divide-[#111827]/[0.08]"></div>
+          </div>
+
+          <!-- Saved Syllabi Library Section -->
+          <div class="bg-white rounded-[12px] border border-[#111827]/[0.08] overflow-hidden">
+            <div class="px-5 py-3.5 border-b border-[#111827]/[0.08] bg-[#F5F7FA]/60 flex items-center justify-between">
+              <span class="text-[13px] font-medium text-[#111827]">Saved syllabi in user memory</span>
+              <span id="memory-library-count" class="font-mono text-[11px] text-[#6B7487] tabular-nums">1 deck</span>
+            </div>
+            <div id="memory-library-list" class="divide-y divide-[#111827]/[0.08]"></div>
+          </div>
+        </div>
+
       </div>
     </main>
 
@@ -635,7 +741,19 @@
       </svg>
       <span class="text-[10px] font-mono tracking-tight">Sensei</span>
     </button>
-    <!-- 5. Upload / Source -->
+    <!-- 5. Memory -->
+    <button
+      type="button"
+      id="mobile-nav-memory"
+      onclick="setActiveTab('memory')"
+      class="flex-1 flex flex-col items-center justify-center py-1 transition-colors text-[#64748B] hover:text-brandNavy font-medium"
+    >
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+      </svg>
+      <span class="text-[10px] font-mono tracking-tight">Memory</span>
+    </button>
+    <!-- 6. Upload / Source -->
     <button
       type="button"
       id="mobile-nav-source"
@@ -979,26 +1097,33 @@
         </button>
       </div>
 
-      <!-- Numbers-Only Stat Row (3 compact cards, same height, tabular figures) -->
+      <!-- Numbers-Only Stat Row (4 compact cards, same height, tabular figures) -->
       <div class="p-6 bg-[#F5F7FA] space-y-5">
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div class="bg-white p-4 rounded-[12px] border border-[#111827]/[0.08]">
             <div class="text-[12px] leading-[16px] text-[#6B7487]">Syllabi indexed</div>
-            <div id="profile-stat-decks" class="text-[28px] leading-none font-medium text-[#111827] tabular-nums mt-2 font-mono">
+            <div id="profile-stat-decks" class="text-[24px] leading-none font-medium text-[#111827] tabular-nums mt-2 font-mono">
               1
             </div>
           </div>
 
           <div class="bg-white p-4 rounded-[12px] border border-[#111827]/[0.08]">
             <div class="text-[12px] leading-[16px] text-[#6B7487]">Recall accuracy</div>
-            <div id="profile-stat-accuracy" class="text-[28px] leading-none font-medium text-[#0F3470] tabular-nums mt-2 font-mono">
+            <div id="profile-stat-accuracy" class="text-[24px] leading-none font-medium text-[#0F3470] tabular-nums mt-2 font-mono">
               0%
             </div>
           </div>
 
           <div class="bg-white p-4 rounded-[12px] border border-[#111827]/[0.08]">
             <div class="text-[12px] leading-[16px] text-[#6B7487]">Cards reviewed</div>
-            <div id="profile-stat-cards" class="text-[28px] leading-none font-medium text-[#111827] tabular-nums mt-2 font-mono">
+            <div id="profile-stat-cards" class="text-[24px] leading-none font-medium text-[#111827] tabular-nums mt-2 font-mono">
+              0
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-[12px] border border-[#111827]/[0.08]">
+            <div class="text-[12px] leading-[16px] text-[#6B7487]">Memories stored</div>
+            <div id="profile-stat-memories" class="text-[24px] leading-none font-medium text-[#0F3470] tabular-nums mt-2 font-mono">
               0
             </div>
           </div>
@@ -1007,6 +1132,13 @@
         <!-- Actions -->
         <div class="flex items-center justify-between pt-2">
           <div class="flex items-center gap-2">
+            <button
+              type="button"
+              onclick="closeStudentProfileModal(); setActiveTab('memory');"
+              class="h-9 px-3.5 rounded-[8px] border border-[#111827]/[0.12] bg-white hover:bg-[#ECEFF4] text-[#0F3470] text-[13px] font-medium transition-colors"
+            >
+              Open memory
+            </button>
             <button
               type="button"
               onclick="closeStudentProfileModal(); openStudentLoginModal();"
@@ -1208,9 +1340,16 @@
     let currentCardIndex = 0;
     let isFlipped = false;
 
-    // --- STUDENT PERSONAL ACCOUNTS & AUTH STATE ---
+    // --- STUDENT PERSONAL ACCOUNTS & INTEGRATED USER MEMORY STATE ---
     let currentStudent = null;
     let authActiveTab = "login";
+    let userMemories = []; // [{ id, category, content, source, createdAt }]
+    let userLibrary = [];  // [{ id, filename, studyData, updatedAt }]
+    let activeMemoryFilter = "all";
+
+    function getActiveUserKey() {
+      return currentStudent && currentStudent.id ? currentStudent.id : "guest_session";
+    }
 
     function getStudentsRegistry() {
       try {
@@ -1233,8 +1372,344 @@
       }
     }
 
+    function loadUserMemoryLocal(userKey) {
+      const key = userKey || getActiveUserKey();
+      try {
+        const rawMem = localStorage.getItem("gojo_user_memories_" + key);
+        userMemories = rawMem ? JSON.parse(rawMem) : [];
+        if (!Array.isArray(userMemories)) userMemories = [];
+      } catch (e) {
+        userMemories = [];
+      }
+      try {
+        const rawLib = localStorage.getItem("gojo_user_library_" + key);
+        userLibrary = rawLib ? JSON.parse(rawLib) : [];
+        if (!Array.isArray(userLibrary)) userLibrary = [];
+      } catch (e) {
+        userLibrary = [];
+      }
+      if (userLibrary.length === 0 && studyData && studyData.filename) {
+        userLibrary = [
+          {
+            id: "deck_initial",
+            filename: studyData.filename,
+            studyData: JSON.parse(JSON.stringify(studyData)),
+            updatedAt: new Date().toISOString(),
+          },
+        ];
+      }
+      updateMemoryCountBadges();
+    }
+
+    function saveUserMemoryLocal(userKey) {
+      const key = userKey || getActiveUserKey();
+      try {
+        localStorage.setItem("gojo_user_memories_" + key, JSON.stringify(userMemories.slice(0, 200)));
+        localStorage.setItem("gojo_user_library_" + key, JSON.stringify(userLibrary.slice(0, 30)));
+      } catch (e) {
+        console.warn("Could not save user memory to localStorage", e);
+      }
+      updateMemoryCountBadges();
+    }
+
+    async function syncUserMemoryToServer(action = "sync", extraPayload = {}) {
+      const key = getActiveUserKey();
+      const badge = document.getElementById("memory-sync-badge");
+      if (badge) badge.textContent = "Syncing...";
+      try {
+        const res = await fetch("/api/memory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action,
+            userId: key,
+            profile: currentStudent || { id: key, name: "Guest session", major: "Unregistered desk" },
+            memories: userMemories,
+            library: userLibrary,
+            stats: currentStudent ? currentStudent.stats : {},
+            activeDeck: studyData,
+            ...extraPayload,
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && data.user) {
+          if (badge) badge.textContent = "Synced to user record";
+        }
+      } catch (e) {
+        if (badge) badge.textContent = "Saved locally";
+      }
+    }
+
+    async function fetchUserMemoryFromServer(student) {
+      if (!student || !student.id) return;
+      try {
+        const res = await fetch(`/api/memory?userId=${encodeURIComponent(student.id)}&email=${encodeURIComponent(student.email || "")}`);
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && data.user) {
+          if (Array.isArray(data.user.memories) && data.user.memories.length > 0 && userMemories.length === 0) {
+            userMemories = data.user.memories;
+          }
+          if (Array.isArray(data.user.library) && data.user.library.length > 0 && userLibrary.length <= 1) {
+            userLibrary = data.user.library;
+          }
+          if (data.user.activeDeck && data.user.activeDeck.filename && studyData.filename === "Cellular_Respiration_Core.pdf") {
+            studyData = data.user.activeDeck;
+          }
+          saveUserMemoryLocal(student.id);
+          renderSummary();
+          if (activeTab === "memory") renderMemoryView();
+        }
+      } catch (e) {}
+    }
+
+    function updateMemoryCountBadges() {
+      const tabBadge = document.getElementById("memory-tab-count");
+      if (tabBadge) tabBadge.textContent = String(userMemories.length);
+      const totalPill = document.getElementById("memory-total-pill");
+      if (totalPill) totalPill.textContent = `${userMemories.length} ${userMemories.length === 1 ? "item" : "items"}`;
+      const libCount = document.getElementById("memory-library-count");
+      if (libCount) libCount.textContent = `${userLibrary.length} ${userLibrary.length === 1 ? "syllabus" : "syllabi"}`;
+      const profMem = document.getElementById("profile-stat-memories");
+      if (profMem) profMem.textContent = String(userMemories.length);
+      const stripBadge = document.getElementById("tab-strip-memory-badge");
+      if (stripBadge) {
+        stripBadge.textContent = currentStudent
+          ? `${currentStudent.name.split(" ")[0].toUpperCase()} // ${userMemories.length} MEMORIES`
+          : `SESSION // ${userMemories.length} MEMORIES`;
+      }
+    }
+
+    function addMemoryEntry(category, content, source) {
+      const clean = String(content || "").trim();
+      if (!clean) return null;
+      const exists = userMemories.some((m) => String(m.content).trim().toLowerCase() === clean.toLowerCase());
+      if (exists) return null;
+      const entry = {
+        id: "mem_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        category: category || "note",
+        content: clean,
+        source: source || studyData.filename || "Study desk",
+        createdAt: new Date().toISOString(),
+      };
+      userMemories.unshift(entry);
+      saveUserMemoryLocal();
+      if (currentStudent) saveStudentData(currentStudent);
+      syncUserMemoryToServer("add_memory", { memory: entry });
+      if (activeTab === "memory") renderMemoryView();
+      return entry;
+    }
+
+    function deleteMemoryEntry(memId) {
+      userMemories = userMemories.filter((m) => m.id !== memId);
+      saveUserMemoryLocal();
+      if (currentStudent) saveStudentData(currentStudent);
+      syncUserMemoryToServer("delete_memory", { memoryId: memId });
+      renderMemoryView();
+      renderSummary();
+    }
+
+    function clearAllUserMemories() {
+      if (userMemories.length === 0) return;
+      userMemories = [];
+      saveUserMemoryLocal();
+      if (currentStudent) saveStudentData(currentStudent);
+      syncUserMemoryToServer("clear_memories");
+      renderMemoryView();
+      renderSummary();
+    }
+
+    function handleAddManualMemory(e) {
+      e.preventDefault();
+      const input = document.getElementById("manual-memory-input");
+      const catSelect = document.getElementById("manual-memory-category");
+      if (!input || !input.value.trim()) return;
+      addMemoryEntry(catSelect ? catSelect.value : "note", input.value.trim(), "Manual note");
+      input.value = "";
+      renderMemoryView();
+    }
+
+    function setMemoryFilter(filter) {
+      activeMemoryFilter = filter;
+      ["all", "weak_spot", "exam_focus", "note"].forEach((key) => {
+        const btn = document.getElementById("mem-filter-" + key);
+        if (btn) {
+          btn.className =
+            key === filter
+              ? "px-2.5 py-1 rounded-[5px] bg-white text-[#111827] font-medium transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+              : "px-2.5 py-1 rounded-[5px] text-[#4B5565] hover:text-[#111827] font-medium transition-colors";
+        }
+      });
+      renderMemoryView();
+    }
+
+    function saveTakeawayToMemory(idx) {
+      const item = studyData.takeaways[idx];
+      if (!item) return;
+      const text = `${item.concept}: ${item.desc}`;
+      addMemoryEntry("note", text, `Syllabus pillar ${item.num} · ${studyData.filename}`);
+      renderSummary();
+    }
+
+    function saveTrapToMemory() {
+      if (!studyData.trap) return;
+      addMemoryEntry("exam_focus", studyData.trap, `Exam insight · ${studyData.filename}`);
+      renderSummary();
+    }
+
+    function saveChatMsgToMemory(idx) {
+      const msg = chatMessages[idx];
+      if (!msg || !msg.content) return;
+      const cleanSnippet = msg.content.length > 260 ? msg.content.slice(0, 257) + "..." : msg.content;
+      addMemoryEntry("note", cleanSnippet, `Document assistant · ${studyData.filename}`);
+      renderChat();
+    }
+
+    function saveCurrentDeckToLibrary(deckPayload) {
+      const d = deckPayload || studyData;
+      if (!d || !d.filename) return;
+      const existingIdx = userLibrary.findIndex((item) => item.filename === d.filename);
+      const entry = {
+        id: existingIdx >= 0 ? userLibrary[existingIdx].id : "deck_" + Date.now(),
+        filename: d.filename,
+        studyData: JSON.parse(JSON.stringify(d)),
+        updatedAt: new Date().toISOString(),
+      };
+      if (existingIdx >= 0) {
+        userLibrary.splice(existingIdx, 1);
+      }
+      userLibrary.unshift(entry);
+      saveUserMemoryLocal();
+      syncUserMemoryToServer("save_deck", { deck: entry });
+    }
+
+    function openDeckFromMemoryLibrary(deckId) {
+      const found = userLibrary.find((d) => d.id === deckId || d.filename === deckId);
+      if (!found || !found.studyData) return;
+      studyData = JSON.parse(JSON.stringify(found.studyData));
+      currentQIndex = 0;
+      selectedAnswer = null;
+      arenaScore = 0;
+      answeredCount = 0;
+      quizFinished = false;
+      currentCardIndex = 0;
+      isFlipped = false;
+      if (currentStudent) saveStudentData(currentStudent);
+      renderSummary();
+      renderArena();
+      renderCards();
+      renderChat();
+      setActiveTab("summary");
+    }
+
+    function renderMemoryView() {
+      const heading = document.getElementById("memory-owner-heading");
+      const subhead = document.getElementById("memory-owner-subhead");
+      if (heading) {
+        heading.textContent = currentStudent
+          ? `${currentStudent.name}'s memory ledger`
+          : "Session memory ledger";
+      }
+      if (subhead) {
+        subhead.textContent = currentStudent
+          ? `Personal knowledge store for ${currentStudent.name} (${currentStudent.major || "Student"}). Automatically informs synthesis and Document Assistant answers.`
+          : "Stores your course notes, exam focus, missed recall checks, and uploaded syllabi for this session.";
+      }
+
+      updateMemoryCountBadges();
+
+      const listEl = document.getElementById("memory-items-list");
+      if (listEl) {
+        const filtered =
+          activeMemoryFilter === "all"
+            ? userMemories
+            : userMemories.filter((m) => m.category === activeMemoryFilter);
+
+        if (filtered.length === 0) {
+          listEl.innerHTML = `
+            <div class="p-8 text-center">
+              <div class="text-[14px] font-medium text-[#111827]">No stored memories in this view yet</div>
+              <p class="text-[13px] text-[#6B7487] mt-1 max-w-md mx-auto">
+                Add a note above, click "Save to memory" on any syllabus mechanism, tell the Document Assistant "Remember that...", or complete Active Recall drills to automatically log weak spots.
+              </p>
+            </div>
+          `;
+        } else {
+          const categoryLabelMap = {
+            weak_spot: { label: "Weak spot", cls: "bg-[#FEF2F2] text-[#B91C1C] border-[#B91C1C]/20" },
+            exam_focus: { label: "Exam focus", cls: "bg-[#FFFBEB] text-[#B45309] border-[#B45309]/20" },
+            preference: { label: "Preference", cls: "bg-[#ECEFF4] text-[#0F3470] border-[#0F3470]/20" },
+            note: { label: "Course note", cls: "bg-[#ECEFF4] text-[#111827] border-[#111827]/[0.1]" },
+          };
+
+          listEl.innerHTML = filtered
+            .map((m) => {
+              const badge = categoryLabelMap[m.category] || categoryLabelMap.note;
+              const dateStr = m.createdAt ? new Date(m.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Saved";
+              return `
+                <div class="p-4 sm:p-5 flex items-start justify-between gap-4 hover:bg-[#F5F7FA]/50 transition-colors">
+                  <div class="space-y-1.5 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="px-2 py-0.5 rounded-[5px] border text-[11px] font-medium ${badge.cls}">
+                        ${badge.label}
+                      </span>
+                      <span class="font-mono text-[11px] text-[#6B7487] truncate">${escapeHtml(m.source || "Study desk")}</span>
+                      <span class="font-mono text-[11px] text-[#6B7487] tabular-nums">· ${escapeHtml(dateStr)}</span>
+                    </div>
+                    <p class="text-[13px] leading-[20px] text-[#111827]">${escapeHtml(m.content)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onclick="deleteMemoryEntry('${escapeHtml(m.id)}')"
+                    class="text-[12px] text-[#6B7487] hover:text-[#DC2626] px-2 py-1 rounded-[6px] hover:bg-[#FEF2F2] transition-colors shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+              `;
+            })
+            .join("");
+        }
+      }
+
+      const libEl = document.getElementById("memory-library-list");
+      if (libEl) {
+        if (userLibrary.length === 0) {
+          libEl.innerHTML = `<div class="p-6 text-center text-[13px] text-[#6B7487]">No syllabi archived yet.</div>`;
+        } else {
+          libEl.innerHTML = userLibrary
+            .map((deck) => {
+              const isCurrent = studyData && studyData.filename === deck.filename;
+              const pillarsCount = deck.studyData?.takeaways?.length || 0;
+              const qCount = deck.studyData?.questions?.length || 0;
+              return `
+                <div class="p-4 sm:px-5 flex items-center justify-between gap-4">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono text-[13px] font-medium text-[#111827] truncate">${escapeHtml(deck.filename)}</span>
+                      ${isCurrent ? `<span class="px-2 py-0.5 rounded-[5px] bg-[#ECEFF4] text-[#0F3470] font-mono text-[10px] font-medium">Active on desk</span>` : ""}
+                    </div>
+                    <div class="font-mono text-[11px] text-[#6B7487] tabular-nums mt-0.5">
+                      ${pillarsCount} mechanisms · ${qCount} recall checks
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onclick="openDeckFromMemoryLibrary('${escapeHtml(deck.id)}')"
+                    class="h-8 px-3 rounded-[8px] border border-[#111827]/[0.12] bg-white hover:bg-[#ECEFF4] text-[#111827] text-[12px] font-medium transition-colors shrink-0"
+                  >
+                    ${isCurrent ? "Reload" : "Open syllabus"}
+                  </button>
+                </div>
+              `;
+            })
+            .join("");
+        }
+      }
+    }
+
     function saveStudentData(student) {
       if (!student || !student.id) return;
+      student.memoriesCount = userMemories.length;
       const registry = getStudentsRegistry();
       const idx = registry.findIndex((s) => s.id === student.id);
       if (idx >= 0) {
@@ -1247,6 +1722,8 @@
         sessionStorage.setItem("gojo_active_student_id", student.id);
         localStorage.setItem("gojo_desk_study_" + student.id, JSON.stringify(studyData));
       } catch (e) {}
+      saveUserMemoryLocal(student.id);
+      syncUserMemoryToServer("sync");
     }
 
     function loadStudentDeskData(student) {
@@ -1264,13 +1741,16 @@
             quizFinished = false;
             currentCardIndex = 0;
             isFlipped = false;
-            renderSummary();
-            renderArena();
-            renderCards();
-            renderChat();
           }
         }
       } catch (e) {}
+      loadUserMemoryLocal(student.id);
+      fetchUserMemoryFromServer(student);
+      renderSummary();
+      renderArena();
+      renderCards();
+      renderChat();
+      if (activeTab === "memory") renderMemoryView();
     }
 
     function getStudentAccuracy(student) {
@@ -1297,8 +1777,10 @@
         loadStudentDeskData(currentStudent);
         closeStudentLoginModal();
       } else if (isGuest) {
+        loadUserMemoryLocal("guest_session");
         closeStudentLoginModal();
       } else {
+        loadUserMemoryLocal("guest_session");
         // First thing seen on visit: show the full-screen login gate
         openStudentLoginModal(registry.length === 0 ? "enroll" : "login");
       }
@@ -1427,6 +1909,9 @@
 
       const decksEl = document.getElementById("profile-stat-decks");
       if (decksEl) decksEl.textContent = `${currentStudent.stats?.decksAnalyzed || 1}`;
+
+      const memEl = document.getElementById("profile-stat-memories");
+      if (memEl) memEl.textContent = `${userMemories.length}`;
     }
 
     function setAuthTab(tab) {
@@ -2039,16 +2524,16 @@
 
     function setActiveTab(tabId) {
       activeTab = tabId;
-      const allTabs = ["summary", "arena", "cards", "chat", "source"];
+      const allTabs = ["summary", "arena", "cards", "chat", "memory", "source"];
       
       allTabs.forEach((id) => {
         // Desktop Tab Strip Button
         const btn = document.getElementById(`tab-btn-${id}`);
         if (btn) {
           if (id === tabId) {
-            btn.className = "h-full px-1 text-xs transition-all flex items-center border-b-2 border-brandIndigo text-brandIndigo font-bold";
+            btn.className = "h-full px-1 text-xs transition-all flex items-center gap-1.5 border-b-2 border-brandIndigo text-brandIndigo font-bold";
           } else {
-            btn.className = "h-full px-1 text-xs transition-all flex items-center text-[#64748B] hover:text-brandNavy font-medium";
+            btn.className = "h-full px-1 text-xs transition-all flex items-center gap-1.5 text-[#64748B] hover:text-brandNavy font-medium";
           }
         }
 
@@ -2090,6 +2575,7 @@
       if (tabId === "arena") renderArena();
       if (tabId === "cards") renderCards();
       if (tabId === "chat") renderChat();
+      if (tabId === "memory") renderMemoryView();
     }
 
     function renderSummary() {
@@ -2101,17 +2587,32 @@
       document.getElementById("banner-pillars-num").textContent = `0${studyData.takeaways.length}`;
 
       document.getElementById("summary-takeaways").innerHTML = studyData.takeaways
-        .map(
-          (item) => `
-          <div class="p-4 sm:p-5 flex gap-3 sm:gap-4">
-            <span class="font-mono text-xs px-2 py-0.5 h-fit rounded bg-brandIndigo text-white font-semibold shrink-0 mt-0.5">${escapeHtml(item.num)}</span>
-            <div>
-              <h4 class="text-xs sm:text-sm font-bold text-brandNavy font-mono">${escapeHtml(item.concept)}</h4>
-              <p class="text-xs text-[#64748B] mt-1 leading-relaxed">${escapeHtml(item.desc)}</p>
+        .map((item, idx) => {
+          const fullText = `${item.concept}: ${item.desc}`.toLowerCase();
+          const isSaved = userMemories.some((m) => String(m.content || "").toLowerCase() === fullText);
+          return `
+          <div class="p-4 sm:p-5 flex items-start justify-between gap-3 sm:gap-4">
+            <div class="flex gap-3 sm:gap-4 min-w-0">
+              <span class="font-mono text-xs px-2 py-0.5 h-fit rounded bg-brandIndigo text-white font-semibold shrink-0 mt-0.5 tabular-nums">${escapeHtml(item.num)}</span>
+              <div class="min-w-0">
+                <h4 class="text-xs sm:text-sm font-bold text-brandNavy font-mono">${escapeHtml(item.concept)}</h4>
+                <p class="text-xs text-[#64748B] mt-1 leading-relaxed">${escapeHtml(item.desc)}</p>
+              </div>
             </div>
+            <button
+              type="button"
+              onclick="saveTakeawayToMemory(${idx})"
+              class="shrink-0 px-2.5 py-1 rounded-[6px] border text-[11px] font-medium transition-colors ${
+                isSaved
+                  ? "bg-[#ECEFF4] border-[#0F3470]/20 text-[#0F3470]"
+                  : "bg-white border-[#111827]/[0.1] text-[#4B5565] hover:text-[#111827] hover:bg-[#F5F7FA]"
+              }"
+            >
+              ${isSaved ? "Saved in memory" : "Save to memory"}
+            </button>
           </div>
-        `
-        )
+        `;
+        })
         .join("");
 
       document.getElementById("summary-terms").innerHTML = studyData.terms
@@ -2367,7 +2868,7 @@
 
       // Render Messages
       html += chatMessages
-        .map((msg) => {
+        .map((msg, idx) => {
           if (msg.role === "user") {
             return `
               <div class="flex flex-col items-end gap-1.5 max-w-[88%] ml-auto">
@@ -2387,11 +2888,20 @@
           } else {
             return `
               <div class="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
-                <div class="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-brandIndigo px-1">
-                  <svg class="w-3.5 h-3.5 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span>Gemini 2.5 Flash // Sensei</span>
+                <div class="flex items-center justify-between w-full gap-2 px-1">
+                  <div class="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-brandIndigo">
+                    <svg class="w-3.5 h-3.5 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span>Gemini 2.5 Flash // Memory-Integrated</span>
+                  </div>
+                  <button
+                    type="button"
+                    onclick="saveChatMsgToMemory(${idx})"
+                    class="text-[11px] font-medium text-[#6B7487] hover:text-[#0F3470] transition-colors"
+                  >
+                    Save to memory
+                  </button>
                 </div>
                 <div class="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 text-xs sm:text-[13px] leading-relaxed text-slate-800 shadow-sm">
                   ${formatChatMarkdown(msg.content)}
@@ -2622,6 +3132,11 @@
         const reqBody = {
           filename: activeFilename,
           text: cleanSourceText || "",
+          userMemory: {
+            name: currentStudent ? currentStudent.name : "Student",
+            major: currentStudent ? currentStudent.major : "",
+            memories: userMemories.slice(0, 15),
+          },
         };
         if (uploadedImagePayload && uploadedImagePayload.base64) {
           reqBody.imageBase64 = uploadedImagePayload.base64;
@@ -2732,6 +3247,7 @@
           currentStudent.stats.decksAnalyzed = (currentStudent.stats.decksAnalyzed || 0) + 1;
           saveStudentData(currentStudent);
         }
+        saveCurrentDeckToLibrary(studyData);
         renderSummary();
         renderArena();
         renderCards();
@@ -2744,9 +3260,17 @@
       if (selectedAnswer !== null) return;
       selectedAnswer = index;
       answeredCount++;
-      const isCorrect = index === studyData.questions[currentQIndex].correct;
+      const qObj = studyData.questions[currentQIndex];
+      const isCorrect = index === qObj.correct;
       if (isCorrect) {
         arenaScore++;
+      } else if (qObj) {
+        // Automatically store missed recall concepts in the user's integrated memory
+        addMemoryEntry(
+          "weak_spot",
+          `Missed check: ${qObj.q} — Correct: ${qObj.options[qObj.correct]} (${qObj.critique || "Review slide context"})`,
+          `Active recall · ${studyData.filename}`
+        );
       }
       if (currentStudent) {
         currentStudent.stats = currentStudent.stats || {};
@@ -2835,6 +3359,20 @@
         sourceText ||
         `${studyData.trap}\n${studyData.takeaways.map((t) => `${t.concept}: ${t.desc}`).join("\n")}`;
 
+      // Check if user is explicitly asking to store information in memory
+      const memCmdMatch = userQuery.match(
+        /^(?:please\s+)?(?:remember(?:\s+that)?|save(?:\s+to\s+memory)?|store(?:\s+in\s+memory)?|note\s+that|keep\s+in\s+mind(?:\s+that)?|my\s+exam\s+is|i\s+struggle\s+with)\s*[:,-]?\s*(.+)$/i
+      );
+      if (memCmdMatch && memCmdMatch[1] && memCmdMatch[1].trim().length > 3) {
+        const lowerQ = userQuery.toLowerCase();
+        const cat = /exam|midterm|final|quiz|test|date/i.test(lowerQ)
+          ? "exam_focus"
+          : /struggle|confus|hard|weak|miss/i.test(lowerQ)
+          ? "weak_spot"
+          : "note";
+        addMemoryEntry(cat, userQuery, "Document assistant");
+      }
+
       let replyText = "";
       try {
         const res = await fetch("/api/chat", {
@@ -2843,6 +3381,11 @@
           body: JSON.stringify({
             message: userQuery,
             documentContext: contextStr,
+            userMemory: {
+              name: currentStudent ? currentStudent.name : "Student",
+              major: currentStudent ? currentStudent.major : "",
+              memories: userMemories.slice(0, 25),
+            },
             history: chatMessages.slice(0, -1).map((m) => ({
               role: m.role === "user" ? "user" : "model",
               content: m.content,
@@ -2850,6 +3393,13 @@
           }),
         });
         const data = await res.json();
+        if (data && data.autoSavedMemory && data.autoSavedMemory.content) {
+          addMemoryEntry(
+            data.autoSavedMemory.category || "note",
+            data.autoSavedMemory.content,
+            data.autoSavedMemory.source || "Document assistant"
+          );
+        }
         if (res.ok && data && data.reply) {
           replyText = data.reply;
         }
@@ -2858,21 +3408,35 @@
       }
 
       if (!replyText) {
-        // Grounded local answer from the user's actual uploaded document
-        const queryWords = userQuery
-          .toLowerCase()
-          .split(/\W+/)
-          .filter((w) => w.length > 3);
-        const sentences = contextStr
-          .split(/(?<=[.!?])\s+|\n+/)
-          .map((s) => s.trim())
-          .filter((s) => s.length > 20);
-        const bestMatch =
-          sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
-          studyData.takeaways[0]?.desc ||
-          studyData.trap;
+        if (memCmdMatch && memCmdMatch[1]) {
+          replyText = `Stored in your personal memory ledger: "${userQuery}". I will keep this in context across your study sessions and recall drills.`;
+        } else if (/\b(my memory|what do you remember|weak spot|stored note|what did i miss)\b/i.test(userQuery)) {
+          if (userMemories.length === 0) {
+            replyText = `Your personal memory ledger is currently empty. You can store notes in the Personal Memory tab, click "Save to memory" on any syllabus mechanism, or complete Active Recall drills to automatically log weak spots.`;
+          } else {
+            const topMems = userMemories
+              .slice(0, 5)
+              .map((m) => `• [${m.category}] ${m.content}`)
+              .join("\n");
+            replyText = `Here is what is currently stored in your personal memory ledger (${userMemories.length} total items):\n\n${topMems}`;
+          }
+        } else {
+          // Grounded local answer from the user's actual uploaded document
+          const queryWords = userQuery
+            .toLowerCase()
+            .split(/\W+/)
+            .filter((w) => w.length > 3);
+          const sentences = contextStr
+            .split(/(?<=[.!?])\s+|\n+/)
+            .map((s) => s.trim())
+            .filter((s) => s.length > 20);
+          const bestMatch =
+            sentences.find((s) => queryWords.some((w) => s.toLowerCase().includes(w))) ||
+            studyData.takeaways[0]?.desc ||
+            studyData.trap;
 
-        replyText = `From "${studyData.filename}": ${bestMatch}`;
+          replyText = `From "${studyData.filename}": ${bestMatch}`;
+        }
       }
 
       isChatThinking = false;
