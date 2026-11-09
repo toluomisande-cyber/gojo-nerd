@@ -158,6 +158,11 @@
         </svg>
         Print Study Syllabus
       </button>
+
+      <!-- Personal Student Profile / Login Header Pill -->
+      <div id="student-header-badge-container" class="shrink-0">
+        <!-- Rendered dynamically by renderStudentHeader() -->
+      </div>
     </div>
   </header>
 
@@ -291,6 +296,46 @@
         <!-- 1. SUMMARY VIEW -->
         <div id="view-summary" class="max-w-3xl space-y-5 sm:space-y-6">
           
+          <!-- Student Personal Greeting Banner -->
+          <div id="student-welcome-banner" class="hidden bg-gradient-to-r from-brandSky/90 via-brandSky/50 to-white border border-[#C5DFFF] rounded-xl p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div id="student-banner-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-brandNavy text-white font-mono text-xs sm:text-sm font-bold flex items-center justify-center shrink-0 ring-2 ring-white shadow-xs">
+                AC
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs sm:text-sm font-bold text-brandNavy font-sans">
+                    Welcome back, <span id="student-banner-name">Alex</span>
+                  </span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-brandNavy/10 text-brandNavy border border-brandNavy/20">
+                    ENROLLED STUDENT
+                  </span>
+                </div>
+                <div class="text-[11px] text-[#64748B] flex items-center gap-2 mt-0.5 font-mono truncate">
+                  <span id="student-banner-major">Bioengineering '27</span>
+                  <span>•</span>
+                  <span id="student-banner-streak" class="text-amber-700 font-semibold flex items-center gap-1">
+                    <span>🔥</span><span>5 Day Streak</span>
+                  </span>
+                  <span class="hidden md:inline">•</span>
+                  <span id="student-banner-accuracy" class="hidden md:inline text-emerald-700 font-semibold">88% Recall Accuracy</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <button
+                type="button"
+                onclick="openStudentProfileModal()"
+                class="px-2.5 py-1.5 rounded border border-brandIndigo/30 bg-white hover:bg-brandSky text-brandNavy font-mono text-[11px] font-semibold transition-colors flex items-center gap-1.5 shadow-2xs"
+              >
+                <svg class="w-3.5 h-3.5 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                </svg>
+                <span>Student ID Card</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Deep Navy Header Card (#0F3470) -->
           <div class="bg-brandNavy text-white rounded-xl p-4 sm:p-5 shadow-sm flex items-center justify-between border-l-4 border-[#93C5FD]">
             <div class="min-w-0 pr-2">
@@ -644,6 +689,427 @@
     </button>
   </nav>
 
+  <!-- STUDENT LOGIN / REGISTRATION MODAL GATE -->
+  <div
+    id="student-login-modal"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-3 sm:p-4 overflow-y-auto"
+    onclick="handleLoginModalBackdropClick(event)"
+  >
+    <div
+      class="bg-white rounded-2xl border border-[#CBD5E1] shadow-2xl w-full max-w-lg overflow-hidden my-auto"
+      onclick="event.stopPropagation()"
+    >
+      <!-- Academic Masthead of Modal -->
+      <div class="bg-brandNavy text-white p-5 sm:p-6 relative overflow-hidden">
+        <div class="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none"></div>
+        <div class="absolute right-6 top-3 opacity-15 pointer-events-none">
+          <svg viewBox="0 0 100 100" class="w-24 h-24">
+            <circle cx="38" cy="50" r="23" fill="none" stroke="white" stroke-width="4" />
+            <circle cx="62" cy="50" r="23" fill="none" stroke="white" stroke-width="4" />
+            <circle cx="50" cy="50" r="14" fill="none" stroke="white" stroke-width="2" stroke-dasharray="3 3" />
+            <line x1="20" y1="80" x2="80" y2="20" stroke="white" stroke-width="3" />
+          </svg>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-[10px] font-mono tracking-widest text-brandSky uppercase font-semibold">GØJØ ACADEMIC PORTAL</span>
+          </div>
+          <button
+            type="button"
+            onclick="closeStudentLoginModal()"
+            class="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+            aria-label="Close modal"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <h3 class="text-xl sm:text-2xl font-serif font-bold text-white tracking-tight">
+          Student Access &amp; Workspace
+        </h3>
+        <p class="text-xs text-white/80 mt-1 font-sans">
+          Log in with your academic student ID to track mastery, streaks, and personal recall drills.
+        </p>
+      </div>
+
+      <!-- Auth Mode Tabs -->
+      <div class="flex border-b border-[#E2E8F0] bg-slate-50 text-xs font-mono">
+        <button
+          type="button"
+          id="auth-tab-quick"
+          onclick="setAuthTab('quick')"
+          class="flex-1 py-3 px-2 text-center font-bold text-brandIndigo border-b-2 border-brandIndigo bg-white transition-all"
+        >
+          Quick Profiles
+        </button>
+        <button
+          type="button"
+          id="auth-tab-login"
+          onclick="setAuthTab('login')"
+          class="flex-1 py-3 px-2 text-center font-medium text-[#64748B] hover:text-brandNavy transition-all"
+        >
+          Student Sign In
+        </button>
+        <button
+          type="button"
+          id="auth-tab-enroll"
+          onclick="setAuthTab('enroll')"
+          class="flex-1 py-3 px-2 text-center font-medium text-[#64748B] hover:text-brandNavy transition-all"
+        >
+          New Student
+        </button>
+      </div>
+
+      <!-- TAB 1: QUICK PROFILES SELECTOR -->
+      <div id="auth-panel-quick" class="p-5 sm:p-6 space-y-4">
+        <div class="text-xs text-[#64748B]">
+          Select an enrolled student profile to instantly load their personal syllabus notes, active recall accuracy, and study streak:
+        </div>
+
+        <div id="quick-students-list" class="space-y-2.5">
+          <!-- Dynamically populated by renderQuickStudentsList() -->
+        </div>
+
+        <div class="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
+          <button
+            type="button"
+            onclick="setAuthTab('enroll')"
+            class="text-brandIndigo hover:text-brandNavy font-mono font-semibold underline"
+          >
+            + Enroll as a New Student
+          </button>
+          <button
+            type="button"
+            onclick="continueAsGuest()"
+            class="text-[#64748B] hover:text-brandNavy font-mono"
+          >
+            Continue as Guest →
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 2: STUDENT SIGN IN FORM -->
+      <form id="auth-panel-login" class="hidden p-5 sm:p-6 space-y-4" onsubmit="handleStudentSignIn(event)">
+        <div id="login-error-msg" class="hidden p-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-xs font-mono"></div>
+
+        <div>
+          <label class="block text-xs font-mono font-semibold text-brandNavy mb-1">
+            Student ID or Academic Email
+          </label>
+          <input
+            type="text"
+            id="login-student-id"
+            required
+            placeholder="e.g. GOJO-2027-4819 or alex.chen@harvard.edu"
+            class="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-brandNavy/30 focus:border-brandNavy font-mono"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-mono font-semibold text-brandNavy mb-1">
+            Access PIN / Password
+          </label>
+          <input
+            type="password"
+            id="login-student-pin"
+            required
+            placeholder="••••"
+            class="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-brandNavy/30 focus:border-brandNavy font-mono"
+          />
+          <div class="flex justify-between items-center mt-1 text-[11px] text-[#64748B]">
+            <span>Demo PIN: <code class="font-mono bg-slate-100 px-1 py-0.5 rounded text-brandNavy">1234</code></span>
+            <button type="button" onclick="setAuthTab('quick')" class="text-brandIndigo hover:underline font-mono">1-Click Profiles</button>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full py-2.5 px-4 rounded-lg bg-brandNavy hover:bg-[#16438c] text-white font-mono text-xs sm:text-sm font-bold tracking-wide transition-colors shadow-sm"
+        >
+          Sign In to Student Desk
+        </button>
+
+        <div class="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
+          <span class="text-[#64748B]">No account yet?</span>
+          <button
+            type="button"
+            onclick="setAuthTab('enroll')"
+            class="text-brandIndigo hover:text-brandNavy font-mono font-semibold underline"
+          >
+            Enroll New Student
+          </button>
+        </div>
+      </form>
+
+      <!-- TAB 3: ENROLL NEW STUDENT FORM -->
+      <form id="auth-panel-enroll" class="hidden p-5 sm:p-6 space-y-3.5" onsubmit="handleStudentEnroll(event)">
+        <div id="enroll-error-msg" class="hidden p-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-xs font-mono"></div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-mono font-semibold text-brandNavy mb-1">
+              Student Full Name *
+            </label>
+            <input
+              type="text"
+              id="enroll-name"
+              required
+              placeholder="e.g. Jordan Lee"
+              class="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-brandNavy/30 focus:border-brandNavy"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-mono font-semibold text-brandNavy mb-1">
+              Major &amp; Class Year *
+            </label>
+            <input
+              type="text"
+              id="enroll-major"
+              required
+              placeholder="e.g. Neuroscience '27"
+              class="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-brandNavy/30 focus:border-brandNavy"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-mono font-semibold text-brandNavy mb-1">
+            University / Institution *
+          </label>
+          <input
+            type="text"
+            id="enroll-institution"
+            required
+            placeholder="e.g. Harvard / Oxford / Stanford"
+            class="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-brandNavy/30 focus:border-brandNavy"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-mono font-semibold text-brandNavy mb-1">
+              Academic Email *
+            </label>
+            <input
+              type="email"
+              id="enroll-email"
+              required
+              placeholder="jordan.lee@university.edu"
+              class="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-brandNavy/30 focus:border-brandNavy font-mono"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-mono font-semibold text-brandNavy mb-1">
+              Create 4-Digit PIN *
+            </label>
+            <input
+              type="password"
+              id="enroll-pin"
+              maxlength="8"
+              required
+              placeholder="1234"
+              class="w-full px-3 py-2 text-xs sm:text-sm border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-brandNavy/30 focus:border-brandNavy font-mono"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full py-2.5 px-4 rounded-lg bg-brandIndigo hover:bg-brandNavy text-white font-mono text-xs sm:text-sm font-bold tracking-wide transition-colors shadow-sm mt-2"
+        >
+          Enroll Student &amp; Launch Desk
+        </button>
+
+        <div class="pt-2 border-t border-[#E2E8F0] text-center text-xs">
+          <button
+            type="button"
+            onclick="setAuthTab('login')"
+            class="text-[#64748B] hover:text-brandNavy font-mono"
+          >
+            Already enrolled? <span class="text-brandIndigo underline font-semibold">Sign In</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- STUDENT DIGITAL ID & TRANSCRIPT MODAL -->
+  <div
+    id="student-profile-modal"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-3 sm:p-4 overflow-y-auto"
+    onclick="handleProfileModalBackdropClick(event)"
+  >
+    <div
+      class="bg-white rounded-2xl border border-[#CBD5E1] shadow-2xl w-full max-w-lg overflow-hidden my-auto"
+      onclick="event.stopPropagation()"
+    >
+      <!-- DIGITAL STUDENT CARD UI -->
+      <div class="p-5 sm:p-6 bg-gradient-to-br from-brandNavy via-[#0d2a58] to-[#16438c] text-white relative">
+        <!-- Close button -->
+        <button
+          type="button"
+          onclick="closeStudentProfileModal()"
+          class="absolute top-4 right-4 text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+          aria-label="Close modal"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <!-- ID Card Top Banner -->
+        <div class="flex items-center justify-between pb-4 border-b border-white/15">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 flex items-center justify-center">
+              <svg viewBox="0 0 100 100" class="w-full h-full">
+                <circle cx="38" cy="50" r="23" fill="none" stroke="white" stroke-width="4.5" />
+                <circle cx="62" cy="50" r="23" fill="none" stroke="#DC2626" stroke-width="4.5" />
+                <circle cx="50" cy="50" r="14" fill="none" stroke="white" stroke-width="2" stroke-dasharray="3 3" />
+                <line x1="20" y1="80" x2="80" y2="20" stroke="white" stroke-width="3" stroke-linecap="round" />
+                <circle cx="50" cy="50" r="6" fill="white" />
+              </svg>
+            </div>
+            <div>
+              <div class="text-[10px] font-mono tracking-widest text-[#93C5FD] font-semibold uppercase">
+                GØJØ ACADEMIC INSTITUTE
+              </div>
+              <div class="text-[9px] text-white/60 font-mono">OFFICIAL STUDENT CREDENTIAL</div>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-mono font-bold tracking-wider">
+            ACTIVE ENROLLED
+          </span>
+        </div>
+
+        <!-- Student Photo & Details -->
+        <div class="flex items-center gap-4 pt-4">
+          <div id="profile-card-avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white text-brandNavy font-mono text-xl sm:text-2xl font-black flex items-center justify-center shadow-lg border-2 border-white/30 shrink-0">
+            AC
+          </div>
+          <div class="min-w-0">
+            <h4 id="profile-card-name" class="text-lg sm:text-xl font-bold font-serif text-white truncate">
+              Alex Chen
+            </h4>
+            <div id="profile-card-id" class="text-xs font-mono text-[#93C5FD] font-semibold mt-0.5">
+              ID: GOJO-2027-4819
+            </div>
+            <div id="profile-card-major" class="text-xs text-white/80 font-mono mt-0.5 truncate">
+              Bioengineering &amp; Molecular Genetics '27
+            </div>
+            <div id="profile-card-institution" class="text-[11px] text-white/60 truncate">
+              Harvard University
+            </div>
+          </div>
+        </div>
+
+        <!-- Barcode Graphic -->
+        <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+          <div class="h-6 flex items-end gap-1 opacity-60">
+            <div class="w-1 h-6 bg-white"></div>
+            <div class="w-0.5 h-6 bg-white"></div>
+            <div class="w-1.5 h-6 bg-white"></div>
+            <div class="w-0.5 h-6 bg-white"></div>
+            <div class="w-2 h-6 bg-white"></div>
+            <div class="w-0.5 h-6 bg-white"></div>
+            <div class="w-1 h-6 bg-white"></div>
+            <div class="w-1.5 h-6 bg-white"></div>
+            <div class="w-0.5 h-6 bg-white"></div>
+            <div class="w-2 h-6 bg-white"></div>
+            <div class="w-1 h-6 bg-white"></div>
+          </div>
+          <div class="text-[9px] font-mono text-white/50 text-right">
+            VALID: 2026-2027 ACADEMIC SESSION
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Academic Transcript & Stats -->
+      <div class="p-5 sm:p-6 bg-slate-50 border-t border-[#E2E8F0]">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-mono uppercase tracking-wider font-bold text-brandNavy">
+            Academic Mastery Record
+          </span>
+          <span class="text-[10px] font-mono text-[#64748B]">Personal to this student</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+          <!-- Streak -->
+          <div class="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-2xs">
+            <div class="text-[10px] font-mono text-[#64748B] flex items-center gap-1">
+              <span>🔥</span><span>Streak</span>
+            </div>
+            <div id="profile-stat-streak" class="text-base sm:text-lg font-bold font-mono text-brandNavy mt-0.5">
+              5 Days
+            </div>
+          </div>
+
+          <!-- Recall Accuracy -->
+          <div class="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-2xs">
+            <div class="text-[10px] font-mono text-[#64748B] flex items-center gap-1">
+              <span>🎯</span><span>Accuracy</span>
+            </div>
+            <div id="profile-stat-accuracy" class="text-base sm:text-lg font-bold font-mono text-emerald-600 mt-0.5">
+              88%
+            </div>
+          </div>
+
+          <!-- Cards Mastered -->
+          <div class="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-2xs">
+            <div class="text-[10px] font-mono text-[#64748B] flex items-center gap-1">
+              <span>🧠</span><span>Cards</span>
+            </div>
+            <div id="profile-stat-cards" class="text-base sm:text-lg font-bold font-mono text-brandNavy mt-0.5">
+              24 Mastered
+            </div>
+          </div>
+
+          <!-- Decks Analyzed -->
+          <div class="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-2xs">
+            <div class="text-[10px] font-mono text-[#64748B] flex items-center gap-1">
+              <span>📚</span><span>Syllabi</span>
+            </div>
+            <div id="profile-stat-decks" class="text-base sm:text-lg font-bold font-mono text-brandNavy mt-0.5">
+              3 Analyzed
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Account Actions -->
+        <div class="mt-5 pt-4 border-t border-[#E2E8F0] flex flex-wrap gap-2 justify-between items-center">
+          <div class="flex gap-2">
+            <button
+              type="button"
+              onclick="openStudentLoginModal()"
+              class="px-3 py-1.5 rounded-lg border border-brandIndigo/30 bg-white hover:bg-brandSky text-brandNavy font-mono text-xs font-semibold transition-colors shadow-2xs"
+            >
+              ⇄ Switch Student
+            </button>
+            <button
+              type="button"
+              onclick="handleStudentSignOut()"
+              class="px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-mono text-xs font-semibold transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+          <button
+            type="button"
+            onclick="closeStudentProfileModal()"
+            class="px-4 py-1.5 rounded-lg bg-brandNavy hover:bg-[#16438c] text-white font-mono text-xs font-bold transition-colors ml-auto"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // --- SAMPLE DATASET ---
     const initialPayload = {
@@ -816,6 +1282,507 @@
 
     let currentCardIndex = 0;
     let isFlipped = false;
+
+    // --- STUDENT PERSONAL ACCOUNTS & AUTH STATE ---
+    const DEFAULT_STUDENTS = [
+      {
+        id: "GOJO-2027-4819",
+        name: "Alex Chen",
+        email: "alex.chen@harvard.edu",
+        pin: "1234",
+        major: "Bioengineering '27",
+        institution: "Harvard University",
+        avatarColor: "#0F3470",
+        avatarInitials: "AC",
+        stats: {
+          streak: 5,
+          drillsAttempted: 25,
+          drillsMastered: 22,
+          cardsMastered: 24,
+          decksAnalyzed: 3,
+        },
+      },
+      {
+        id: "GOJO-2026-1104",
+        name: "Maya Lin",
+        email: "maya.lin@stanford.edu",
+        pin: "1234",
+        major: "Cognitive Neuroscience '26",
+        institution: "Stanford University",
+        avatarColor: "#7C3AED",
+        avatarInitials: "ML",
+        stats: {
+          streak: 12,
+          drillsAttempted: 40,
+          drillsMastered: 38,
+          cardsMastered: 42,
+          decksAnalyzed: 6,
+        },
+      },
+      {
+        id: "GOJO-2028-3921",
+        name: "Marcus Vance",
+        email: "marcus.vance@mit.edu",
+        pin: "1234",
+        major: "AI & Quantitative Biology '28",
+        institution: "MIT",
+        avatarColor: "#0D9488",
+        avatarInitials: "MV",
+        stats: {
+          streak: 3,
+          drillsAttempted: 18,
+          drillsMastered: 15,
+          cardsMastered: 18,
+          decksAnalyzed: 2,
+        },
+      },
+    ];
+
+    let currentStudent = null;
+    let authActiveTab = "quick";
+
+    function getStudentsRegistry() {
+      try {
+        const raw = localStorage.getItem("gojo_students_v1");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.warn("Could not read students registry from localStorage", e);
+      }
+      saveStudentsRegistry(DEFAULT_STUDENTS);
+      return DEFAULT_STUDENTS;
+    }
+
+    function saveStudentsRegistry(students) {
+      try {
+        localStorage.setItem("gojo_students_v1", JSON.stringify(students));
+      } catch (e) {
+        console.warn("Could not save students registry", e);
+      }
+    }
+
+    function saveStudentData(student) {
+      if (!student || !student.id) return;
+      const registry = getStudentsRegistry();
+      const idx = registry.findIndex((s) => s.id === student.id);
+      if (idx >= 0) {
+        registry[idx] = student;
+      } else {
+        registry.push(student);
+      }
+      saveStudentsRegistry(registry);
+      try {
+        localStorage.setItem("gojo_current_student_id_v1", student.id);
+      } catch (e) {}
+    }
+
+    function getStudentAccuracy(student) {
+      if (!student || !student.stats || !student.stats.drillsAttempted) return 0;
+      const attempted = student.stats.drillsAttempted;
+      const mastered = student.stats.drillsMastered || 0;
+      return Math.round((mastered / attempted) * 100);
+    }
+
+    function initStudentAuth() {
+      const registry = getStudentsRegistry();
+      let savedId = null;
+      try {
+        savedId = localStorage.getItem("gojo_current_student_id_v1");
+      } catch (e) {}
+
+      if (savedId) {
+        currentStudent = registry.find((s) => s.id === savedId) || null;
+      }
+
+      const isGuest = sessionStorage.getItem("gojo_guest_session") === "true";
+      if (!currentStudent && !isGuest) {
+        currentStudent = registry[0] || null;
+        if (currentStudent) {
+          try {
+            localStorage.setItem("gojo_current_student_id_v1", currentStudent.id);
+          } catch (e) {}
+        }
+      }
+
+      renderStudentHeader();
+      renderStudentGreeting();
+      renderQuickStudentsList();
+    }
+
+    function renderStudentHeader() {
+      const container = document.getElementById("student-header-badge-container");
+      if (!container) return;
+
+      if (currentStudent) {
+        container.innerHTML = `
+          <button
+            type="button"
+            onclick="openStudentProfileModal()"
+            class="flex items-center gap-1.5 sm:gap-2 px-2 py-1 sm:px-2.5 sm:py-1 rounded-full border border-brandIndigo/30 bg-white hover:bg-brandSky/70 text-brandNavy transition-all shadow-2xs"
+            title="Open Student ID & Academic Record"
+          >
+            <div
+              class="w-6 h-6 rounded-full text-white font-mono text-[10px] font-bold flex items-center justify-center shrink-0 shadow-2xs"
+              style="background-color: ${currentStudent.avatarColor || '#0F3470'}"
+            >
+              ${escapeHtml(currentStudent.avatarInitials || 'ST')}
+            </div>
+            <div class="text-left hidden sm:block leading-tight min-w-0">
+              <div class="font-bold text-[11px] truncate max-w-[90px] md:max-w-[120px] text-brandNavy">${escapeHtml(currentStudent.name)}</div>
+              <div class="text-[9px] text-[#64748B] font-mono truncate max-w-[90px] md:max-w-[120px]">${escapeHtml(currentStudent.major)}</div>
+            </div>
+            <svg class="w-3 h-3 text-[#64748B] hidden sm:block shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        `;
+      } else {
+        container.innerHTML = `
+          <button
+            type="button"
+            onclick="openStudentLoginModal()"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-brandIndigo bg-brandNavy text-white hover:bg-[#16438c] transition-all font-mono text-[11px] font-semibold shadow-2xs"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>Student Sign In</span>
+          </button>
+        `;
+      }
+    }
+
+    function renderStudentGreeting() {
+      const banner = document.getElementById("student-welcome-banner");
+      if (!banner) return;
+
+      if (!currentStudent) {
+        banner.classList.add("hidden");
+        return;
+      }
+
+      banner.classList.remove("hidden");
+      const avatarEl = document.getElementById("student-banner-avatar");
+      if (avatarEl) {
+        avatarEl.textContent = currentStudent.avatarInitials || "ST";
+        avatarEl.style.backgroundColor = currentStudent.avatarColor || "#0F3470";
+      }
+
+      const nameEl = document.getElementById("student-banner-name");
+      if (nameEl) nameEl.textContent = currentStudent.name;
+
+      const majorEl = document.getElementById("student-banner-major");
+      if (majorEl) majorEl.textContent = currentStudent.major;
+
+      const streakEl = document.getElementById("student-banner-streak");
+      if (streakEl) {
+        streakEl.innerHTML = `<span>🔥</span><span>${currentStudent.stats?.streak || 1} Day Streak</span>`;
+      }
+
+      const accuracyEl = document.getElementById("student-banner-accuracy");
+      if (accuracyEl) {
+        const acc = getStudentAccuracy(currentStudent);
+        accuracyEl.textContent = `${acc}% Recall Accuracy`;
+      }
+    }
+
+    function renderQuickStudentsList() {
+      const container = document.getElementById("quick-students-list");
+      if (!container) return;
+      const registry = getStudentsRegistry();
+
+      container.innerHTML = registry
+        .map((student) => {
+          const isCurrent = currentStudent && currentStudent.id === student.id;
+          const accuracy = getStudentAccuracy(student);
+          return `
+            <div
+              onclick="handleQuickStudentSelect('${student.id}')"
+              class="group p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                isCurrent
+                  ? 'border-brandIndigo bg-brandSky/50 ring-1 ring-brandIndigo'
+                  : 'border-[#E2E8F0] hover:border-brandNavy/40 hover:bg-slate-50'
+              }"
+            >
+              <div class="flex items-center gap-3 min-w-0">
+                <div
+                  class="w-10 h-10 rounded-full text-white font-mono text-xs font-bold flex items-center justify-center shrink-0 shadow-2xs"
+                  style="background-color: ${student.avatarColor || '#0F3470'}"
+                >
+                  ${escapeHtml(student.avatarInitials || 'ST')}
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs sm:text-sm font-bold text-brandNavy truncate">${escapeHtml(student.name)}</span>
+                    ${
+                      isCurrent
+                        ? '<span class="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold">CURRENT</span>'
+                        : ''
+                    }
+                  </div>
+                  <div class="text-[11px] text-[#64748B] font-mono truncate">
+                    ${escapeHtml(student.major)} · ${escapeHtml(student.institution || 'University')}
+                  </div>
+                  <div class="text-[10px] text-[#64748B] font-mono flex items-center gap-2 mt-0.5">
+                    <span>🔥 ${student.stats?.streak || 1}d</span>
+                    <span>•</span>
+                    <span class="text-emerald-700 font-semibold">${accuracy}% acc</span>
+                    <span>•</span>
+                    <span>${student.stats?.cardsMastered || 0} cards</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded-lg font-mono text-[11px] font-semibold transition-colors shrink-0 ${
+                  isCurrent
+                    ? 'bg-brandIndigo text-white'
+                    : 'bg-white border border-[#CBD5E1] text-brandNavy group-hover:bg-brandNavy group-hover:text-white'
+                }"
+              >
+                ${isCurrent ? 'Active' : 'Select'}
+              </button>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function renderStudentProfile() {
+      if (!currentStudent) return;
+
+      const avatarEl = document.getElementById("profile-card-avatar");
+      if (avatarEl) {
+        avatarEl.textContent = currentStudent.avatarInitials || "ST";
+        avatarEl.style.color = currentStudent.avatarColor || "#0F3470";
+      }
+
+      const nameEl = document.getElementById("profile-card-name");
+      if (nameEl) nameEl.textContent = currentStudent.name;
+
+      const idEl = document.getElementById("profile-card-id");
+      if (idEl) idEl.textContent = `ID: ${currentStudent.id}`;
+
+      const majorEl = document.getElementById("profile-card-major");
+      if (majorEl) majorEl.textContent = currentStudent.major;
+
+      const instEl = document.getElementById("profile-card-institution");
+      if (instEl) instEl.textContent = currentStudent.institution;
+
+      const streakEl = document.getElementById("profile-stat-streak");
+      if (streakEl) streakEl.textContent = `${currentStudent.stats?.streak || 1} Days`;
+
+      const accEl = document.getElementById("profile-stat-accuracy");
+      if (accEl) accEl.textContent = `${getStudentAccuracy(currentStudent)}%`;
+
+      const cardsEl = document.getElementById("profile-stat-cards");
+      if (cardsEl) cardsEl.textContent = `${currentStudent.stats?.cardsMastered || 0} Mastered`;
+
+      const decksEl = document.getElementById("profile-stat-decks");
+      if (decksEl) decksEl.textContent = `${currentStudent.stats?.decksAnalyzed || 1} Analyzed`;
+    }
+
+    function setAuthTab(tab) {
+      authActiveTab = tab;
+      const tabs = ["quick", "login", "enroll"];
+      tabs.forEach((t) => {
+        const btn = document.getElementById(`auth-tab-${t}`);
+        const panel = document.getElementById(`auth-panel-${t}`);
+        if (t === tab) {
+          if (btn) {
+            btn.className = "flex-1 py-3 px-2 text-center font-bold text-brandIndigo border-b-2 border-brandIndigo bg-white transition-all";
+          }
+          if (panel) panel.classList.remove("hidden");
+        } else {
+          if (btn) {
+            btn.className = "flex-1 py-3 px-2 text-center font-medium text-[#64748B] hover:text-brandNavy transition-all";
+          }
+          if (panel) panel.classList.add("hidden");
+        }
+      });
+
+      if (tab === "quick") {
+        renderQuickStudentsList();
+      }
+    }
+
+    function openStudentLoginModal() {
+      const modal = document.getElementById("student-login-modal");
+      if (modal) {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        setAuthTab(authActiveTab || "quick");
+      }
+    }
+
+    function closeStudentLoginModal() {
+      const modal = document.getElementById("student-login-modal");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+    }
+
+    function handleLoginModalBackdropClick(e) {
+      if (e.target && e.target.id === "student-login-modal") {
+        closeStudentLoginModal();
+      }
+    }
+
+    function openStudentProfileModal() {
+      if (!currentStudent) {
+        openStudentLoginModal();
+        return;
+      }
+      renderStudentProfile();
+      const modal = document.getElementById("student-profile-modal");
+      if (modal) {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      }
+    }
+
+    function closeStudentProfileModal() {
+      const modal = document.getElementById("student-profile-modal");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+    }
+
+    function handleProfileModalBackdropClick(e) {
+      if (e.target && e.target.id === "student-profile-modal") {
+        closeStudentProfileModal();
+      }
+    }
+
+    function handleQuickStudentSelect(studentId) {
+      const registry = getStudentsRegistry();
+      const found = registry.find((s) => s.id === studentId);
+      if (found) {
+        currentStudent = found;
+        try {
+          localStorage.setItem("gojo_current_student_id_v1", found.id);
+          sessionStorage.removeItem("gojo_guest_session");
+        } catch (e) {}
+        renderStudentHeader();
+        renderStudentGreeting();
+        closeStudentLoginModal();
+      }
+    }
+
+    function handleStudentSignIn(e) {
+      e.preventDefault();
+      const idInput = document.getElementById("login-student-id");
+      const pinInput = document.getElementById("login-student-pin");
+      const errorMsg = document.getElementById("login-error-msg");
+
+      const identifier = (idInput?.value || "").trim().toLowerCase();
+      const pin = (pinInput?.value || "").trim();
+
+      const registry = getStudentsRegistry();
+      const matched = registry.find((s) => {
+        const idMatch = s.id.toLowerCase() === identifier;
+        const emailMatch = s.email.toLowerCase() === identifier;
+        return (idMatch || emailMatch) && (!s.pin || s.pin === pin || pin === "1234");
+      });
+
+      if (matched) {
+        if (errorMsg) errorMsg.classList.add("hidden");
+        currentStudent = matched;
+        try {
+          localStorage.setItem("gojo_current_student_id_v1", matched.id);
+          sessionStorage.removeItem("gojo_guest_session");
+        } catch (err) {}
+        renderStudentHeader();
+        renderStudentGreeting();
+        closeStudentLoginModal();
+      } else {
+        if (errorMsg) {
+          errorMsg.textContent = "Invalid Student ID / Email or PIN. (Demo PIN: 1234 or use 1-Click Profiles)";
+          errorMsg.classList.remove("hidden");
+        }
+      }
+    }
+
+    function handleStudentEnroll(e) {
+      e.preventDefault();
+      const name = (document.getElementById("enroll-name")?.value || "").trim();
+      const major = (document.getElementById("enroll-major")?.value || "").trim();
+      const institution = (document.getElementById("enroll-institution")?.value || "").trim();
+      const email = (document.getElementById("enroll-email")?.value || "").trim();
+      const pin = (document.getElementById("enroll-pin")?.value || "").trim() || "1234";
+
+      if (!name || !major || !institution || !email) return;
+
+      const initials = name
+        .split(/\s+/)
+        .map((p) => p[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase();
+
+      const colors = ["#0F3470", "#1E40AF", "#0369A1", "#0D9488", "#7C3AED", "#B91C1C"];
+      const avatarColor = colors[Math.floor(Math.random() * colors.length)];
+      const studentId = `GOJO-2027-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const newStudent = {
+        id: studentId,
+        name,
+        email,
+        pin,
+        major,
+        institution,
+        avatarColor,
+        avatarInitials: initials,
+        stats: {
+          streak: 1,
+          drillsAttempted: 0,
+          drillsMastered: 0,
+          cardsMastered: 0,
+          decksAnalyzed: 1,
+        },
+      };
+
+      const registry = getStudentsRegistry();
+      registry.unshift(newStudent);
+      saveStudentsRegistry(registry);
+
+      currentStudent = newStudent;
+      try {
+        localStorage.setItem("gojo_current_student_id_v1", newStudent.id);
+        sessionStorage.removeItem("gojo_guest_session");
+      } catch (err) {}
+
+      renderStudentHeader();
+      renderStudentGreeting();
+      closeStudentLoginModal();
+    }
+
+    function handleStudentSignOut() {
+      currentStudent = null;
+      try {
+        localStorage.removeItem("gojo_current_student_id_v1");
+        sessionStorage.setItem("gojo_guest_session", "true");
+      } catch (e) {}
+      renderStudentHeader();
+      renderStudentGreeting();
+      closeStudentProfileModal();
+      openStudentLoginModal();
+    }
+
+    function continueAsGuest() {
+      try {
+        sessionStorage.setItem("gojo_guest_session", "true");
+        localStorage.removeItem("gojo_current_student_id_v1");
+      } catch (e) {}
+      currentStudent = null;
+      renderStudentHeader();
+      renderStudentGreeting();
+      closeStudentLoginModal();
+    }
 
     let isChatThinking = false;
     let isChatStreaming = false;
@@ -1242,6 +2209,7 @@
     }
 
     function renderSummary() {
+      renderStudentGreeting();
       document.getElementById("masthead-filename").textContent = studyData.filename;
       document.getElementById("banner-course-title").textContent = studyData.filename;
       document.getElementById("summary-trap").textContent = studyData.trap;
@@ -1875,6 +2843,11 @@
         if (mobileLabel) mobileLabel.textContent = "Synthesize Study Canvas";
         if (status) status.textContent = "STATUS: READY";
         if (bannerStatus) bannerStatus.textContent = "VERIFIED";
+        if (currentStudent) {
+          currentStudent.stats = currentStudent.stats || {};
+          currentStudent.stats.decksAnalyzed = (currentStudent.stats.decksAnalyzed || 0) + 1;
+          saveStudentData(currentStudent);
+        }
         renderSummary();
         renderArena();
         renderCards();
@@ -1887,8 +2860,18 @@
       if (selectedAnswer !== null) return;
       selectedAnswer = index;
       answeredCount++;
-      if (index === studyData.questions[currentQIndex].correct) {
+      const isCorrect = index === studyData.questions[currentQIndex].correct;
+      if (isCorrect) {
         arenaScore++;
+      }
+      if (currentStudent) {
+        currentStudent.stats = currentStudent.stats || {};
+        currentStudent.stats.drillsAttempted = (currentStudent.stats.drillsAttempted || 0) + 1;
+        if (isCorrect) {
+          currentStudent.stats.drillsMastered = (currentStudent.stats.drillsMastered || 0) + 1;
+        }
+        saveStudentData(currentStudent);
+        renderStudentGreeting();
       }
       renderArena();
     }
@@ -1914,6 +2897,12 @@
 
     function toggleFlipCard() {
       isFlipped = !isFlipped;
+      if (isFlipped && currentStudent) {
+        currentStudent.stats = currentStudent.stats || {};
+        currentStudent.stats.cardsMastered = (currentStudent.stats.cardsMastered || 0) + 1;
+        saveStudentData(currentStudent);
+        renderStudentGreeting();
+      }
       renderCards();
     }
 
@@ -2057,6 +3046,9 @@
         }
       }
     });
+
+    // Initialize student personal workspace & authentication
+    initStudentAuth();
 
     // Initialize initial view
     renderSummary();
