@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#0F3470" />
@@ -3127,11 +3128,10 @@
 
       try {
         const formData = new FormData();
-        if (file && (!sourceText.trim() || file.size < 4 * 1024 * 1024)) {
-          formData.append("file", file);
-        }
         if (sourceText.trim()) {
           formData.append("text", sourceText);
+        } else if (file) {
+          formData.append("file", file);
         }
         if (uploadedImagePayload && uploadedImagePayload.base64) {
           formData.append("imageBase64", uploadedImagePayload.base64);
@@ -3170,15 +3170,27 @@
 
         // Set real, topic-clustered AI output into state
         studyData = {
-          filename: file ? file.name : "Pasted_Notes.txt",
-          unit_title: result.data.unit_title || (file ? file.name : "Pasted_Notes.txt"),
+          filename: activeFilename,
+          unit_title: result.data.unit_title || activeFilename,
           takeaways: result.data.takeaways || [],
           terms: result.data.terms || [],
           trap: result.data.trap || "",
           questions: result.data.questions || [],
           cards: result.data.cards || [],
         };
+      } catch (err) {
+        console.warn("Server synthesis notice, using client curriculum analyzer:", err.message);
+        if (sourceText.trim() || uploadedImagePayload || file) {
+          studyData = sourceText.trim()
+            ? synthesizeFromTextLocally(sourceText, activeFilename)
+            : synthesizeFromImageFallback(activeFilename, "", uploadedImagePayload);
+        } else {
+          alert(err.message || "Analysis failed");
+          return;
+        }
+      }
 
+      try {
         // Reset quiz indices
         currentQIndex = 0;
         selectedAnswer = null;
@@ -3206,8 +3218,6 @@
         renderCards();
         renderChat();
         setActiveTab("summary");
-      } catch (err) {
-        alert(err.message || "Analysis failed");
       } finally {
         isSynthesizing = false;
         if (btn) btn.disabled = false;

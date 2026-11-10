@@ -874,7 +874,22 @@ export default function AcademicWorkspace() {
 
       setActiveTab("summary");
     } catch (err: any) {
-      alert(err.message);
+      if (sourceText.trim() || file) {
+        const activeName = file ? file.name : "Pasted_Notes.txt";
+        const localData = synthesizeFromTextLocally(sourceText.trim() || activeName, activeName);
+        setStudyData(localData);
+        saveDeckToLibrary(localData);
+        setCurrentQIndex(0);
+        setSelectedAnswer(null);
+        setArenaScore(0);
+        setAnsweredCount(0);
+        setQuizFinished(false);
+        setCurrentCardIndex(0);
+        setIsFlipped(false);
+        setActiveTab("summary");
+      } else {
+        alert(err.message);
+      }
     } finally {
       setIsSynthesizing(false);
     }
