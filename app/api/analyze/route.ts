@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Force Node.js runtime instead of Edge to support buffer parsing
+// Ensure Node.js runtime and allocate max free-tier execution time (60s)
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const CANDIDATE_MODELS = [
   "gemini-3.1-flash-lite",
@@ -10,18 +11,6 @@ const CANDIDATE_MODELS = [
   "gemini-2.0-flash",
   "gemini-1.5-flash",
 ];
-
-async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> {
-  // Dynamically import pdf-parse-fork to prevent route boot crashes
-  // @ts-ignore
-  const pdfParseMod: any = await import("pdf-parse-fork");
-  const pdfParse = pdfParseMod.default || pdfParseMod;
-  if (typeof pdfParse === "function") {
-    const pdfData = await pdfParse(buffer);
-    return pdfData?.text || "";
-  }
-  return "";
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,17 +20,23 @@ export async function POST(req: NextRequest) {
 
     let contentToAnalyze = "";
 
-    // 1. Text extraction
+    // 1. Text Parsing
     if (file && file.size > 0) {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+
       const isPdf =
         file.type === "application/pdf" ||
         (file.name || "").toLowerCase().endsWith(".pdf") ||
         buffer.slice(0, 4).toString("ascii") === "%PDF";
 
       if (isPdf) {
-        contentToAnalyze = await extractTextFromPdfBuffer(buffer);
+        // pdf-parse-fork runs cleanly without missing test-fixture errors
+        // @ts-ignore
+        const pdfMod: any = await import("pdf-parse-fork");
+        const pdf = pdfMod.default || pdfMod;
+        const pdfData = await pdf(buffer);
+        contentToAnalyze = pdfData.text;
       } else {
         contentToAnalyze = buffer.toString("utf-8");
       }
@@ -64,38 +59,42 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, error: "GEMINI_API_KEY is missing in your environment variables." },
+        { success: false, error: "GEMINI_API_KEY missing from environment variables." },
         { status: 500 }
       );
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
+    // Trim text to avoid exceeding token limits or causing long response times
+    const cleanContext = contentToAnalyze
+      .replace(/\s+/g, " ")
+      .slice(0, 30000);
 
-    const systemInstruction = `You are an elite academic curriculum architect.
-Analyze the provided lecture notes and output strict structured JSON matching this schema:
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const systemInstruction = `You are an elite academic curriculum architect. 
+Analyze the lecture notes and output strict structured JSON matching this schema:
 {
   "takeaways": [
     { "num": "01", "concept": "Core Mechanism Name", "desc": "Detailed functional explanation." }
   ],
   "terms": ["Term 1", "Term 2", "Term 3", "Term 4", "Term 5"],
-  "trap": "Direct, 2-sentence breakdown of the specific exam trap professors set on this material.",
+  "trap": "Direct 2-sentence breakdown of the specific exam trap professors set on this material.",
   "cards": [
-    { "term": "Term or Principle", "def": "Operational definition and exam hook." }
+    { "term": "Term", "def": "Operational definition and exam hook." }
   ],
   "questions": [
     {
       "q": "Conceptual multiple-choice question testing the core mechanism?",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correct": 0,
-      "critique": "Why the wrong options fail.",
+      "critique": "Why wrong options fail.",
       "accolade": "Confirmation of correct mechanism."
     }
   ]
 }`;
 
-    const prompt = `Synthesize this lecture content into high-yield exam material:\n\n"""\n${contentToAnalyze.slice(0, 75000)}\n"""`;
+    const prompt = `Synthesize this lecture content into high-yield exam material:\n\n"""\n${cleanContext}\n"""`;
 
-    // 2. Query Gemini Flash with strict JSON output
+    // 2. Query Gemini
     let responseText = "";
     let lastError: any = null;
 
@@ -121,20 +120,17 @@ Analyze the provided lecture notes and output strict structured JSON matching th
       throw lastError || new Error("Failed to generate response from Gemini.");
     }
 
-    // Strip accidental markdown backticks if returned
-    const cleanJsonString = responseText
+    const cleanJson = responseText
       .replace(/^```json\s*/i, "")
       .replace(/^```\s*/i, "")
       .replace(/```\s*$/i, "")
       .trim();
 
-    const parsedData = JSON.parse(cleanJsonString);
-
-    return NextResponse.json({ success: true, data: parsedData });
+    return NextResponse.json({ success: true, data: JSON.parse(cleanJson) });
   } catch (error: any) {
-    console.error("API Route Error:", error);
+    console.error("Vercel Function Error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "An error occurred while analyzing the document." },
+      { success: false, error: error.message || "An unexpected error occurred." },
       { status: 500 }
     );
   }

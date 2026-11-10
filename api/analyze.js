@@ -226,11 +226,11 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Clean whitespace and slide-header noise
+    // Trim text to avoid exceeding token limits or causing long response times
     const sanitizedText = contentToAnalyze
-      .replace(/\r\n/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 30000);
 
     if (!sanitizedText && inlineParts.length === 0) {
       return res.status(400).json({
@@ -243,7 +243,7 @@ module.exports = async function handler(req, res) {
     if (!apiKey || apiKey === 'your_gemini_api_key_here') {
       return res.status(500).json({
         success: false,
-        error: 'GEMINI_API_KEY is missing in your environment variables.',
+        error: 'GEMINI_API_KEY missing from environment variables.',
       });
     }
 
@@ -281,11 +281,11 @@ module.exports = async function handler(req, res) {
     const promptParts = [...inlineParts];
     if (sanitizedText) {
       promptParts.push(
-        `Synthesize this lecture material into a structured exam study package:\n\n"""\n${sanitizedText.slice(0, 75000)}\n"""`
+        `Synthesize this lecture content into high-yield exam material:\n\n"""\n${sanitizedText}\n"""`
       );
     } else {
       promptParts.push(
-        `Synthesize the attached lecture slide/document material into a structured exam study package following the strict JSON schema.`
+        `Synthesize the attached lecture slide/document material into high-yield exam material following the strict JSON schema.`
       );
     }
 
