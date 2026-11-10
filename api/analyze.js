@@ -53,22 +53,14 @@ async function extractPdfTextWithTimeout(buffer, timeoutMs = 4500) {
   return Promise.race([
     (async () => {
       try {
-        const pdfParseModule = require('pdf-parse');
-        if (typeof pdfParseModule === 'function') {
-          const data = await pdfParseModule(buffer);
+        const pdfParseModule = require('pdf-parse-fork');
+        const pdfParse = pdfParseModule.default || pdfParseModule;
+        if (typeof pdfParse === 'function') {
+          const data = await pdfParse(buffer);
           return data.text || '';
         }
-        if (pdfParseModule && typeof pdfParseModule.PDFParse === 'function') {
-          const parser = new pdfParseModule.PDFParse({ data: buffer });
-          try {
-            const result = await parser.getText();
-            return result.text || '';
-          } finally {
-            if (typeof parser.destroy === 'function') await parser.destroy().catch(() => {});
-          }
-        }
       } catch (e) {
-        console.warn('pdf-parse load/extract notice:', e.message);
+        console.warn('pdf-parse-fork load/extract notice:', e.message);
       }
       return '';
     })(),

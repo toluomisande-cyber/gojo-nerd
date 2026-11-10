@@ -12,26 +12,13 @@ const CANDIDATE_MODELS = [
 ];
 
 async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> {
-  // Dynamically import pdf-parse to prevent route boot crashes
-  const pdfParseMod: any = await import("pdf-parse");
-  if (typeof pdfParseMod.default === "function") {
-    const pdfData = await pdfParseMod.default(buffer);
+  // Dynamically import pdf-parse-fork to prevent route boot crashes
+  // @ts-ignore
+  const pdfParseMod: any = await import("pdf-parse-fork");
+  const pdfParse = pdfParseMod.default || pdfParseMod;
+  if (typeof pdfParse === "function") {
+    const pdfData = await pdfParse(buffer);
     return pdfData?.text || "";
-  }
-  if (typeof pdfParseMod === "function") {
-    const pdfData = await pdfParseMod(buffer);
-    return pdfData?.text || "";
-  }
-  if (typeof pdfParseMod.PDFParse === "function") {
-    const parser = new pdfParseMod.PDFParse({ data: buffer });
-    try {
-      const pdfData = await parser.getText();
-      return pdfData?.text || "";
-    } finally {
-      if (typeof parser.destroy === "function") {
-        await parser.destroy().catch(() => {});
-      }
-    }
   }
   return "";
 }
