@@ -241,16 +241,17 @@ module.exports = async function handler(req, res) {
       .trim();
 
     if (!sanitizedText && inlineParts.length === 0) {
-      return res.status(400).json({ error: 'Missing document input.' });
+      return res.status(400).json({
+        success: false,
+        error: 'Please upload a document or paste notes.',
+      });
     }
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-      return res.status(200).json({
+      return res.status(500).json({
         success: false,
-        extractedText: sanitizedText.slice(0, 20000),
-        demoFallback: true,
-        error: 'Gemini API key not set in environment; using local analyzer.',
+        error: 'GEMINI_API_KEY is missing in your environment variables.',
       });
     }
 
@@ -358,11 +359,10 @@ OUTPUT SCHEMA (STRICT JSON):
       data: parsedData,
     });
   } catch (err) {
-    console.error('Vercel Analyze Error:', err);
-    return res.status(200).json({
+    console.error('API Route Error:', err);
+    return res.status(500).json({
       success: false,
-      demoFallback: true,
-      error: err.message || 'Server fallback triggered',
+      error: err.message || 'An error occurred while analyzing the document.',
     });
   }
 };
