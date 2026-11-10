@@ -836,7 +836,15 @@ export default function AcademicWorkspace() {
         body: formData,
       });
 
-      const result = await res.json();
+      // Safely parse JSON or capture the plain text error
+      const rawResponse = await res.text();
+      let result: any;
+      try {
+        result = JSON.parse(rawResponse);
+      } catch {
+        throw new Error(`Server returned a non-JSON error: ${rawResponse.slice(0, 150)}...`);
+      }
+
       if (!res.ok || !result.success) {
         throw new Error(result.error || "Analysis failed");
       }

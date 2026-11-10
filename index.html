@@ -3127,11 +3127,11 @@
 
       try {
         const formData = new FormData();
+        if (file && (!sourceText.trim() || file.size < 4 * 1024 * 1024)) {
+          formData.append("file", file);
+        }
         if (sourceText.trim()) {
           formData.append("text", sourceText);
-        }
-        if (file) {
-          formData.append("file", file);
         }
         if (uploadedImagePayload && uploadedImagePayload.base64) {
           formData.append("imageBase64", uploadedImagePayload.base64);
@@ -3151,7 +3151,15 @@
           body: formData,
         });
 
-        const result = await res.json();
+        // Safely parse JSON or capture the plain text error
+        const rawResponse = await res.text();
+        let result;
+        try {
+          result = JSON.parse(rawResponse);
+        } catch {
+          throw new Error(`Server returned a non-JSON error: ${rawResponse.slice(0, 150)}...`);
+        }
+
         if (!res.ok || !result.success) {
           throw new Error(result.error || "Analysis failed");
         }
