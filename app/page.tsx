@@ -569,8 +569,11 @@ export default function AcademicWorkspace() {
     setIsLoginModalOpen(false);
   };
 
-  // Chat State
+  // Chat State & Daily Free Quota (15 messages/day)
+  const DAILY_FREE_LIMIT = 15;
   const [isChatThinking, setIsChatThinking] = useState<boolean>(false);
+  const [isChatStreaming, setIsChatStreaming] = useState<boolean>(false);
+  const [dailyUsedMessages, setDailyUsedMessages] = useState<number>(0);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       role: "gojo",
@@ -579,6 +582,25 @@ export default function AcademicWorkspace() {
     },
   ]);
   const [chatInput, setChatInput] = useState<string>("");
+
+  const remainingFreeMessages = Math.max(0, DAILY_FREE_LIMIT - dailyUsedMessages);
+
+  const resetDailyFreeQuota = async () => {
+    setDailyUsedMessages(0);
+    try {
+      const day = new Date().toISOString().slice(0, 10);
+      const uKey = currentStudent?.id || "guest_session";
+      localStorage.setItem(`gojo_free_quota_${uKey}_${day}`, "0");
+      await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resetQuota: true,
+          userMemory: { id: uKey, name: currentStudent?.name || "Student" },
+        }),
+      });
+    } catch {}
+  };
 
   const synthesizeFromTextLocally = (rawText: string, filename: string): StudyPayload => {
     const raw = String(rawText || "").trim();
@@ -930,10 +952,10 @@ export default function AcademicWorkspace() {
   };
 
   const streamTextIntoMessage = async (fullText: string) => {
-    const words = fullText.split(" ");
+    const tokens = String(fullText || "").match(/\S+\s*/g) || [String(fullText || "")];
     let current = "";
-    for (let i = 0; i < words.length; i++) {
-      current += (i === 0 ? "" : " ") + words[i];
+    for (let i = 0; i < tokens.length; i++) {
+      current += tokens[i];
       const snapshot = current;
       setChatMessages((prev) => {
         const copy = [...prev];
@@ -942,15 +964,29 @@ export default function AcademicWorkspace() {
         }
         return copy;
       });
-      const word = words[i];
-      const delay = 24 + (word.length * 5) + (/[.,!?:;]$/.test(word) ? 100 : 0);
-      await new Promise((r) => setTimeout(r, Math.min(delay, 75)));
+      const token = tokens[i].trim();
+      const isSentenceEnd = /[.!?]$/.test(token);
+      const isClausePause = /[,;:—]$/.test(token);
+      const baseDelay = 22 + Math.min(token.length * 4, 32);
+      const extraPause = isSentenceEnd ? 140 : isClausePause ? 65 : 0;
+      await new Promise((r) => setTimeout(r, baseDelay + extraPause));
     }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim() || isChatThinking) return;
+    if (!chatInput.trim() || isChatThinking || isChatStreaming) return;
+
+    if (remainingFreeMessages <= 0) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: "gojo",
+          content: `You've reached your ${DAILY_FREE_LIMIT}/${DAILY_FREE_LIMIT} free messages for today. Click Reset in the chat header to reset your daily free quota and continue studying.`,
+        },
+      ]);
+      return;
+    }
 
     const userQuery = chatInput.trim();
     const updatedHistory: ChatMessage[] = [
@@ -960,6 +996,7 @@ export default function AcademicWorkspace() {
     setChatMessages(updatedHistory);
     setChatInput("");
     setIsChatThinking(true);
+    const typingStartedAt = Date.now();
 
     const memCmdMatch = userQuery.match(
       /^(?:please\s+)?(?:remember(?:\s+that)?|save(?:\s+to\s+memory)?|store(?:\s+in\s+memory)?|note\s+that|keep\s+in\s+mind(?:\s+that)?|my\s+exam\s+is|i\s+struggle\s+with)\s*[:,-]?\s*(.+)$/i
@@ -979,6 +1016,7 @@ export default function AcademicWorkspace() {
       `${studyData.trap}\n${studyData.takeaways.map((t) => `${t.concept}: ${t.desc}`).join("\n")}`;
 
     let replyText = "";
+    let serverQuotaSet = false;
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -986,7 +1024,9 @@ export default function AcademicWorkspace() {
         body: JSON.stringify({
           message: userQuery,
           documentContext: contextStr,
+          usedToday: dailyUsedMessages,
           userMemory: {
+            id: currentStudent?.id || "guest_session",
             name: currentStudent?.name || "Student",
             major: currentStudent?.major || "",
             memories: userMemories.slice(0, 25),
@@ -998,6 +1038,10 @@ export default function AcademicWorkspace() {
         }),
       });
       const data = await res.json().catch(() => null);
+      if (data?.quota && typeof data.quota.used === "number") {
+        setDailyUsedMessages(data.quota.used);
+        serverQuotaSet = true;
+      }
       if (data?.autoSavedMemory?.content) {
         addMemoryEntry(
           data.autoSavedMemory.category || "note",
@@ -1010,6 +1054,10 @@ export default function AcademicWorkspace() {
       }
     } catch {
       // Fallback to local grounded document search
+    }
+
+    if (!serverQuotaSet) {
+      setDailyUsedMessages((prev) => Math.min(DAILY_FREE_LIMIT, prev + 1));
     }
 
     if (!replyText) {
@@ -1033,9 +1081,16 @@ export default function AcademicWorkspace() {
       }
     }
 
+    const elapsed = Date.now() - typingStartedAt;
+    if (elapsed < 850) {
+      await new Promise((r) => setTimeout(r, 850 - elapsed));
+    }
+
     setIsChatThinking(false);
+    setIsChatStreaming(true);
     setChatMessages((prev) => [...prev, { role: "gojo", content: "" }]);
     await streamTextIntoMessage(replyText);
+    setIsChatStreaming(false);
   };
 
   return (
@@ -1536,23 +1591,52 @@ export default function AcademicWorkspace() {
               </div>
             )}
 
-            {/* 4. COURSE REFERENCE */}
+            {/* 4. STUDY ASSISTANT (TEXTING ANIMATION + FREE LIMITED QUOTA) */}
             {activeTab === "chat" && (
               <div className="max-w-2xl mx-auto space-y-4">
                 <div className="bg-white border border-[#E2E8F0] rounded-2xl h-[calc(100dvh-200px)] md:h-[500px] flex flex-col shadow-sm overflow-hidden">
-                  {/* Header bar inside course reference */}
-                  <div className="px-4 py-3 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-white shrink-0">
+                  {/* Header bar inside study assistant */}
+                  <div className="px-4 py-3 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-white shrink-0 gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                      <span className="font-mono font-bold text-[#0F3470] truncate">Course Reference &amp; Document Lookup</span>
-                      <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-[#E4F1FF] text-[#0F3470] font-semibold border border-[#C5DFFF] shrink-0">
-                        Source-verified
-                      </span>
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          isChatThinking || isChatStreaming
+                            ? "bg-[#0F3470] animate-ping"
+                            : "bg-emerald-500"
+                        }`}
+                      />
+                      <div className="min-w-0">
+                        <span className="font-mono font-bold text-[#0F3470] truncate block">Study Assistant</span>
+                        <span className="text-[10px] font-mono text-[#64748B] block">
+                          {isChatThinking || isChatStreaming ? "typing a reply..." : "Online · Ready to text"}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] font-mono text-[#64748B] shrink-0">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200">
-                        <span className="font-semibold text-[#0F3470]">Source Index</span>
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold border ${
+                          remainingFreeMessages === 0
+                            ? "bg-red-50 border-red-200 text-red-700"
+                            : remainingFreeMessages <= 3
+                            ? "bg-amber-50 border-amber-200 text-amber-800"
+                            : "bg-[#E4F1FF] border-[#C5DFFF] text-[#0F3470]"
+                        }`}
+                      >
+                        <span>
+                          {remainingFreeMessages === 0
+                            ? `Limit Reached · 0/${DAILY_FREE_LIMIT}`
+                            : `Free Tier · ${remainingFreeMessages}/${DAILY_FREE_LIMIT} left`}
+                        </span>
                       </span>
+                      {dailyUsedMessages > 0 && (
+                        <button
+                          type="button"
+                          onClick={resetDailyFreeQuota}
+                          className="text-[10px] font-mono px-2 py-1 rounded-md border border-[#CBD5E1] bg-white hover:bg-slate-50 text-[#0F3470] font-semibold transition-colors"
+                        >
+                          Reset
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1566,10 +1650,10 @@ export default function AcademicWorkspace() {
                           </svg>
                         </div>
                         <h3 className="text-lg sm:text-xl font-serif font-bold text-[#0F3470] tracking-tight">
-                          Search and cross-reference your material
+                          Text your study assistant
                         </h3>
                         <p className="text-xs text-[#64748B] mt-1.5 leading-relaxed max-w-sm mx-auto">
-                          Look up definitions in &ldquo;{studyData.filename}&rdquo;, review exam distinctions, or check mechanisms.
+                          Ask questions about &ldquo;{studyData.filename}&rdquo;, review exam distinctions, or check mechanisms (15 free messages/day).
                         </p>
                         <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4">
                           {[
@@ -1597,51 +1681,60 @@ export default function AcademicWorkspace() {
                       </div>
                     )}
 
-                    {chatMessages.map((msg, idx) => (
-                      <div key={idx}>
-                        {msg.role === "user" ? (
-                          <div className="flex flex-col items-end gap-1.5 max-w-[88%] ml-auto">
-                            <div className="flex flex-wrap gap-1.5 justify-end">
-                              <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-[#E4F1FF] border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-[#0F3470] font-semibold shadow-2xs">
-                                <svg className="w-3 h-3 text-[#0F3470] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <span className="truncate max-w-[170px]">{msg.attachment || studyData.filename}</span>
-                              </span>
+                    {chatMessages.map((msg, idx) => {
+                      const isLastStreaming =
+                        isChatStreaming && idx === chatMessages.length - 1 && msg.role !== "user";
+                      return (
+                        <div key={idx}>
+                          {msg.role === "user" ? (
+                            <div className="flex flex-col items-end gap-1.5 max-w-[88%] ml-auto">
+                              <div className="flex flex-wrap gap-1.5 justify-end">
+                                <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-[#E4F1FF] border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-[#0F3470] font-semibold shadow-2xs">
+                                  <svg className="w-3 h-3 text-[#0F3470] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  <span className="truncate max-w-[170px]">{msg.attachment || studyData.filename}</span>
+                                </span>
+                              </div>
+                              <div className="rounded-2xl rounded-tr-xs bg-[#0F3470] text-white px-4 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-sm whitespace-pre-wrap">
+                                {msg.content}
+                              </div>
                             </div>
-                            <div className="rounded-2xl rounded-tr-xs bg-[#0F3470] text-white px-4 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-sm whitespace-pre-wrap">
-                              {msg.content}
+                          ) : (
+                            <div className="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
+                              <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-[#0F3470] px-1">
+                                <span>Study Assistant</span>
+                                {isLastStreaming && (
+                                  <span className="text-[10px] text-[#64748B] font-normal">· typing...</span>
+                                )}
+                              </div>
+                              <div className="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 text-xs sm:text-[13px] leading-relaxed text-slate-800 shadow-sm whitespace-pre-wrap">
+                                {msg.content}
+                                {isLastStreaming && (
+                                  <span className="inline-block w-0.5 h-3.5 bg-[#0F3470] ml-1 align-middle animate-pulse" />
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
-                            <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-[#0F3470] px-1">
-                              <span>Syllabus Reference</span>
-                            </div>
-                            <div className="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 text-xs sm:text-[13px] leading-relaxed text-slate-800 shadow-sm whitespace-pre-wrap">
-                              {msg.content}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          )}
+                        </div>
+                      );
+                    })}
 
                     {isChatThinking && (
                       <div className="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
                         <div className="flex items-center gap-2 text-[11px] font-mono font-semibold text-[#0F3470] px-1">
-                          <span className="w-2 h-2 rounded-full bg-[#0F3470] animate-ping" />
-                          <span className="animate-pulse">Looking up slide passages...</span>
+                          <span>Study Assistant is typing...</span>
                         </div>
-                        <div className="w-full rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 shadow-sm flex flex-col gap-2.5">
-                          <div className="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style={{ width: "94%" }} />
-                          <div className="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style={{ width: "86%" }} />
-                          <div className="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style={{ width: "48%" }} />
+                        <div className="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] px-4 py-3.5 shadow-sm inline-flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#0F3470] animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-2 h-2 rounded-full bg-[#0F3470] animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-2 h-2 rounded-full bg-[#0F3470] animate-bounce" />
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* REFERENCE SEARCH COMPOSER */}
+                  {/* COMPOSER */}
                   <div className="p-2.5 sm:p-3.5 border-t border-[#E2E8F0] bg-[#F8F9FA]/50 shrink-0">
                     <form onSubmit={handleSendMessage} className="bg-white border border-[#CBD5E1] focus-within:border-[#0F3470] focus-within:ring-2 focus-within:ring-[#0F3470]/10 rounded-2xl p-2.5 sm:p-3 shadow-sm transition-all">
                       {/* Attachments Pill Strip */}
@@ -1653,7 +1746,7 @@ export default function AcademicWorkspace() {
                           <span className="truncate">{studyData.filename}</span>
                         </span>
                         <span className="inline-flex h-6 items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 text-[10px] font-mono text-[#64748B]">
-                          <span>Full-document index</span>
+                          <span>Limited Free Plan (15/day)</span>
                         </span>
                       </div>
 
@@ -1668,7 +1761,11 @@ export default function AcademicWorkspace() {
                           }
                         }}
                         rows={2}
-                        placeholder="Search concepts, formulas, slide mechanisms, or exam notes..."
+                        placeholder={
+                          remainingFreeMessages === 0
+                            ? "Daily free limit reached (15/15). Click 'Reset' above to continue..."
+                            : "Message your study assistant about these notes..."
+                        }
                         className="w-full bg-transparent border-0 p-1 text-xs sm:text-[13px] text-[#0F3470] placeholder:text-[#64748B] focus:outline-none resize-none leading-relaxed font-sans"
                       />
 
@@ -1676,14 +1773,14 @@ export default function AcademicWorkspace() {
                       <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-1">
                         <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#64748B]">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-[#0F3470] font-semibold">
-                            Direct Reference
+                            {remainingFreeMessages} of {DAILY_FREE_LIMIT} free messages left today
                           </span>
-                          <span className="hidden sm:inline text-slate-400 text-[10px]">• Enter ↵ to search</span>
+                          <span className="hidden sm:inline text-slate-400 text-[10px]">• Enter ↵ to send</span>
                         </div>
 
                         <button
                           type="submit"
-                          disabled={!chatInput.trim() || isChatThinking}
+                          disabled={!chatInput.trim() || isChatThinking || isChatStreaming || remainingFreeMessages === 0}
                           className="w-8 h-8 rounded-full bg-[#0F3470] hover:opacity-90 active:scale-95 text-white flex items-center justify-center transition-all shadow-sm disabled:opacity-40 shrink-0"
                           title="Send message"
                         >

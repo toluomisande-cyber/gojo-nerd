@@ -69,6 +69,59 @@
       transform: rotateY(180deg);
     }
 
+    @keyframes typingBounce {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.45;
+      }
+      30% {
+        transform: translateY(-5px);
+        opacity: 1;
+      }
+    }
+    .typing-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 9999px;
+      background-color: #0F3470;
+      animation: typingBounce 1.25s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.16s;
+    }
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.32s;
+    }
+
+    @keyframes caretBlink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    .typing-caret {
+      display: inline-block;
+      width: 2px;
+      height: 13px;
+      background-color: #0F3470;
+      margin-left: 3px;
+      vertical-align: -2px;
+      animation: caretBlink 0.75s infinite;
+    }
+
+    @keyframes msgBubbleIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .msg-bubble-anim {
+      animation: msgBubbleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
     @media print {
       body {
         background: #FFFFFF !important;
@@ -431,15 +484,27 @@
         <div id="view-chat" class="hidden max-w-2xl mx-auto space-y-4">
           <div class="bg-white border border-[#E2E8F0] rounded-2xl h-[calc(100dvh-200px)] md:h-[500px] flex flex-col shadow-sm overflow-hidden">
             <!-- Header bar -->
-            <div class="px-4 py-3 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-white shrink-0">
+            <div class="px-4 py-3 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-white shrink-0 gap-2">
               <div class="flex items-center gap-2 min-w-0">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                <span class="font-mono font-bold text-brandNavy truncate">Course Reference &amp; Document Lookup</span>
+                <span id="chat-header-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 shrink-0 transition-colors"></span>
+                <div class="min-w-0">
+                  <span class="font-mono font-bold text-brandNavy truncate block">Study Assistant</span>
+                  <span id="chat-header-presence" class="text-[10px] font-mono text-[#64748B] block">Online · Ready to text</span>
+                </div>
               </div>
               <div class="flex items-center gap-2 text-[11px] font-mono text-[#64748B] shrink-0">
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200">
-                  <span class="font-semibold text-brandNavy">Source Index</span>
+                <span id="chat-quota-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brandSky border border-[#C5DFFF] text-brandNavy font-semibold">
+                  <span>Free Tier · 15/15 left</span>
                 </span>
+                <button
+                  type="button"
+                  id="chat-quota-reset-btn"
+                  onclick="resetDailyFreeQuota()"
+                  class="hidden text-[10px] font-mono px-2 py-1 rounded-md border border-[#CBD5E1] bg-white hover:bg-slate-50 text-brandNavy font-semibold transition-colors"
+                  title="Reset daily free message allowance"
+                >
+                  Reset
+                </button>
               </div>
             </div>
 
@@ -450,23 +515,25 @@
             <div class="p-2.5 sm:p-3.5 border-t border-[#E2E8F0] bg-[#F8F9FA]/50 shrink-0">
               <form id="chat-composer-form" onsubmit="handleSendMessage(event)" class="bg-white border border-[#CBD5E1] focus-within:border-brandIndigo focus-within:ring-2 focus-within:ring-brandIndigo/10 rounded-2xl p-2.5 sm:p-3 shadow-sm transition-all">
                 <!-- Attachments Pill Strip -->
-                <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
-                  <span class="inline-flex h-6 items-center gap-1.5 rounded-full bg-brandSky border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-brandNavy font-semibold max-w-[220px]">
-                    <svg class="w-3 h-3 text-brandIndigo shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span id="chat-active-attachment-name" class="truncate">Cellular_Respiration_Core.pdf</span>
-                  </span>
-                  <span class="inline-flex h-6 items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 text-[10px] font-mono text-[#64748B]">
-                    <span>Full-document index</span>
-                  </span>
+                <div class="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="inline-flex h-6 items-center gap-1.5 rounded-full bg-brandSky border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-brandNavy font-semibold max-w-[220px]">
+                      <svg class="w-3 h-3 text-brandIndigo shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span id="chat-active-attachment-name" class="truncate">Cellular_Respiration_Core.pdf</span>
+                    </span>
+                    <span class="inline-flex h-6 items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 text-[10px] font-mono text-[#64748B]">
+                      <span>Limited Free Plan (15/day)</span>
+                    </span>
+                  </div>
                 </div>
 
                 <!-- Input Field -->
                 <textarea
                   id="chat-input-field"
                   rows="2"
-                  placeholder="Search concepts, formulas, slide mechanisms, or add a note..."
+                  placeholder="Message your study assistant about these notes..."
                   class="w-full bg-transparent border-0 p-1 text-xs sm:text-[13px] text-brandNavy placeholder:text-[#64748B] focus:outline-none resize-none leading-relaxed font-sans"
                   onkeydown="handleChatInputKeydown(event)"
                 ></textarea>
@@ -474,17 +541,17 @@
                 <!-- Composer Bottom Toolbar -->
                 <div class="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-1">
                   <div class="flex items-center gap-1.5 text-[11px] font-mono text-[#64748B]">
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-brandNavy font-semibold">
-                      Direct Reference
+                    <span id="chat-composer-status-pill" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-brandNavy font-semibold">
+                      15 free messages remaining today
                     </span>
-                    <span class="hidden sm:inline text-slate-400 text-[10px]">• Enter to search</span>
+                    <span class="hidden sm:inline text-slate-400 text-[10px]">• Enter to send</span>
                   </div>
 
                   <button
                     type="submit"
                     id="chat-send-btn"
                     class="w-8 h-8 rounded-full bg-brandIndigo hover:opacity-90 active:scale-95 text-white flex items-center justify-center transition-all shadow-sm disabled:opacity-40 shrink-0"
-                    title="Search document"
+                    title="Send message"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -2808,25 +2875,136 @@
       return bolded.replace(/\n/g, "<br/>");
     }
 
+    const DAILY_FREE_CHAT_LIMIT = 15;
+
+    function getQuotaStorageKey() {
+      const day = new Date().toISOString().slice(0, 10);
+      return `gojo_free_quota_${getActiveUserKey()}_${day}`;
+    }
+
+    function getDailyFreeQuota() {
+      try {
+        const used = parseInt(localStorage.getItem(getQuotaStorageKey()) || "0", 10);
+        const safeUsed = Number.isFinite(used) && used >= 0 ? used : 0;
+        return {
+          used: Math.min(DAILY_FREE_CHAT_LIMIT, safeUsed),
+          limit: DAILY_FREE_CHAT_LIMIT,
+          remaining: Math.max(0, DAILY_FREE_CHAT_LIMIT - safeUsed),
+        };
+      } catch (e) {
+        return { used: 0, limit: DAILY_FREE_CHAT_LIMIT, remaining: DAILY_FREE_CHAT_LIMIT };
+      }
+    }
+
+    function setDailyFreeQuota(usedCount) {
+      try {
+        const clamped = Math.max(0, Math.min(DAILY_FREE_CHAT_LIMIT, Number(usedCount) || 0));
+        localStorage.setItem(getQuotaStorageKey(), String(clamped));
+      } catch (e) {}
+      updateQuotaBadgeUI();
+    }
+
+    async function resetDailyFreeQuota() {
+      setDailyFreeQuota(0);
+      try {
+        await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resetQuota: true,
+            userMemory: {
+              id: getActiveUserKey(),
+              name: currentStudent ? currentStudent.name : "Student",
+            },
+          }),
+        });
+      } catch (e) {}
+      renderChat();
+    }
+
+    function updateQuotaBadgeUI() {
+      const q = getDailyFreeQuota();
+      const badge = document.getElementById("chat-quota-badge");
+      const resetBtn = document.getElementById("chat-quota-reset-btn");
+      const composerPill = document.getElementById("chat-composer-status-pill");
+      const input = document.getElementById("chat-input-field");
+      const sendBtn = document.getElementById("chat-send-btn");
+
+      if (badge) {
+        if (q.remaining === 0) {
+          badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 font-semibold";
+          badge.innerHTML = `<span>Limit Reached · 0/${q.limit} left</span>`;
+        } else if (q.remaining <= 3) {
+          badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 font-semibold";
+          badge.innerHTML = `<span>Free Tier · ${q.remaining}/${q.limit} left</span>`;
+        } else {
+          badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brandSky border border-[#C5DFFF] text-brandNavy font-semibold";
+          badge.innerHTML = `<span>Free Tier · ${q.remaining}/${q.limit} left</span>`;
+        }
+      }
+
+      if (resetBtn) {
+        if (q.used > 0) resetBtn.classList.remove("hidden");
+        else resetBtn.classList.add("hidden");
+      }
+
+      if (composerPill) {
+        if (q.remaining === 0) {
+          composerPill.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 font-semibold";
+          composerPill.textContent = "Daily free limit reached (0/15)";
+        } else {
+          composerPill.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-brandNavy font-semibold";
+          composerPill.textContent = `${q.remaining} of ${q.limit} free messages left today`;
+        }
+      }
+
+      if (input) {
+        input.placeholder =
+          q.remaining === 0
+            ? "Daily free limit reached (15/15). Click 'Reset' above to continue..."
+            : "Message your study assistant about these notes...";
+      }
+      if (sendBtn) {
+        sendBtn.disabled = q.remaining === 0 || isChatThinking || isChatStreaming;
+      }
+    }
+
+    function updateChatPresenceUI() {
+      const dot = document.getElementById("chat-header-status-dot");
+      const presence = document.getElementById("chat-header-presence");
+      if (!dot || !presence) return;
+      if (isChatThinking || isChatStreaming) {
+        dot.className = "w-2 h-2 rounded-full bg-brandIndigo animate-ping shrink-0";
+        presence.textContent = "typing a reply...";
+        presence.className = "text-[10px] font-mono text-brandIndigo font-semibold block";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500 shrink-0";
+        presence.textContent = "Online · Ready to text";
+        presence.className = "text-[10px] font-mono text-[#64748B] block";
+      }
+    }
+
     function renderChat() {
       const box = document.getElementById("chat-messages-box");
       const attachLabel = document.getElementById("chat-active-attachment-name");
       if (attachLabel) {
         attachLabel.textContent = studyData.filename || "Lecture_Notes.pdf";
       }
+      updateQuotaBadgeUI();
+      updateChatPresenceUI();
 
       const hasUserMessages = chatMessages.some((m) => m.role === "user");
       let html = "";
 
-      // Greeting Hero (shown when starting a session, Prestige UI "What are we working on today?" style)
+      // Greeting Hero
       if (!hasUserMessages) {
         html += `
           <div class="text-center py-5 sm:py-7 px-2 max-w-lg mx-auto transition-opacity duration-300">
             <h3 class="text-lg sm:text-xl font-serif font-bold text-brandNavy tracking-tight">
-              Search active syllabus
+              Text your study assistant
             </h3>
             <p class="text-xs text-[#64748B] mt-1.5 leading-relaxed max-w-sm mx-auto">
-              Look up passages in "${escapeHtml(studyData.filename)}", review exam nuances, or step through documented mechanisms.
+              Ask questions about "${escapeHtml(studyData.filename)}", clarify exam traps, or step through mechanisms (15 free messages/day).
             </p>
             <div class="flex flex-wrap items-center justify-center gap-1.5 mt-4">
               <button
@@ -2858,9 +3036,10 @@
       // Render Messages
       html += chatMessages
         .map((msg, idx) => {
+          const isLastAndStreaming = isChatStreaming && idx === chatMessages.length - 1 && msg.role !== "user";
           if (msg.role === "user") {
             return `
-              <div class="flex flex-col items-end gap-1.5 max-w-[88%] ml-auto">
+              <div class="flex flex-col items-end gap-1.5 max-w-[88%] ml-auto msg-bubble-anim">
                 <div class="flex flex-wrap gap-1.5 justify-end">
                   <span class="inline-flex h-6 items-center gap-1.5 rounded-full bg-brandSky border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-brandNavy font-semibold shadow-2xs">
                     <svg class="w-3 h-3 text-brandIndigo shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2879,7 +3058,8 @@
               <div class="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
                 <div class="flex items-center justify-between w-full gap-2 px-1">
                   <div class="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-brandIndigo">
-                    <span>Syllabus Reference</span>
+                    <span>Study Assistant</span>
+                    ${isLastAndStreaming ? '<span class="text-[10px] text-[#64748B] font-normal">· typing...</span>' : ""}
                   </div>
                   <button
                     type="button"
@@ -2890,7 +3070,7 @@
                   </button>
                 </div>
                 <div class="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 text-xs sm:text-[13px] leading-relaxed text-slate-800 shadow-sm">
-                  ${formatChatMarkdown(msg.content)}
+                  ${formatChatMarkdown(msg.content)}${isLastAndStreaming ? '<span class="typing-caret"></span>' : ""}
                 </div>
               </div>
             `;
@@ -2898,17 +3078,17 @@
         })
         .join("");
 
-      // Loading State
+      // Authentic Texting Bubble Indicator (3 bouncing dots like iMessage/WhatsApp)
       if (isChatThinking) {
         html += `
-          <div class="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
+          <div class="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto msg-bubble-anim">
             <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-brandIndigo px-1">
-              <span>Searching syllabus sections...</span>
+              <span>Study Assistant is typing...</span>
             </div>
-            <div class="w-full rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 shadow-sm flex flex-col gap-2.5">
-              <div class="h-2.5 rounded-full bg-slate-200/90" style="width: 94%"></div>
-              <div class="h-2.5 rounded-full bg-slate-200/90" style="width: 86%"></div>
-              <div class="h-2.5 rounded-full bg-slate-200/90" style="width: 48%"></div>
+            <div class="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] px-4 py-3.5 shadow-sm inline-flex items-center gap-1.5">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
             </div>
           </div>
         `;
@@ -3284,14 +3464,17 @@
     }
 
     async function streamTextIntoMessage(targetIndex, fullText) {
-      const words = fullText.split(" ");
+      const tokens = String(fullText || "").match(/\S+\s*/g) || [String(fullText || "")];
       chatMessages[targetIndex].content = "";
-      for (let i = 0; i < words.length; i++) {
-        chatMessages[targetIndex].content += (i === 0 ? "" : " ") + words[i];
+      for (let i = 0; i < tokens.length; i++) {
+        chatMessages[targetIndex].content += tokens[i];
         renderChat();
-        const word = words[i];
-        const delay = 24 + (word.length * 5) + (/[.,!?:;]$/.test(word) ? 100 : 0);
-        await new Promise((r) => setTimeout(r, Math.min(delay, 75)));
+        const token = tokens[i].trim();
+        const isSentenceEnd = /[.!?]$/.test(token);
+        const isClausePause = /[,;:—]$/.test(token);
+        const baseDelay = 22 + Math.min(token.length * 4, 32);
+        const extraPause = isSentenceEnd ? 140 : isClausePause ? 65 : 0;
+        await new Promise((r) => setTimeout(r, baseDelay + extraPause));
       }
       renderChat();
     }
@@ -3302,6 +3485,16 @@
       const userQuery = input.value.trim();
       if (!userQuery || isChatThinking || isChatStreaming) return;
 
+      const currentQuota = getDailyFreeQuota();
+      if (currentQuota.remaining <= 0) {
+        chatMessages.push({
+          role: "gojo",
+          content: `You've reached your **${currentQuota.limit}/${currentQuota.limit} free messages** for today. Tap **Reset** in the top-right corner of the chat to reset your daily free quota and keep studying.`,
+        });
+        renderChat();
+        return;
+      }
+
       chatMessages.push({
         role: "user",
         content: userQuery,
@@ -3310,6 +3503,8 @@
       input.value = "";
       isChatThinking = true;
       renderChat();
+
+      const typingStartedAt = Date.now();
 
       const sourceText = document.getElementById("source-textarea").value.trim();
       const contextStr =
@@ -3331,6 +3526,7 @@
       }
 
       let replyText = "";
+      let serverQuotaUpdated = false;
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -3338,7 +3534,9 @@
           body: JSON.stringify({
             message: userQuery,
             documentContext: contextStr,
+            usedToday: currentQuota.used,
             userMemory: {
+              id: getActiveUserKey(),
               name: currentStudent ? currentStudent.name : "Student",
               major: currentStudent ? currentStudent.major : "",
               memories: userMemories.slice(0, 25),
@@ -3350,6 +3548,10 @@
           }),
         });
         const data = await res.json();
+        if (data && data.quota && typeof data.quota.used === "number") {
+          setDailyFreeQuota(data.quota.used);
+          serverQuotaUpdated = true;
+        }
         if (data && data.autoSavedMemory && data.autoSavedMemory.content) {
           addMemoryEntry(
             data.autoSavedMemory.category || "note",
@@ -3362,6 +3564,10 @@
         }
       } catch (err) {
         console.warn("Using local document search for chat:", err);
+      }
+
+      if (!serverQuotaUpdated) {
+        setDailyFreeQuota(currentQuota.used + 1);
       }
 
       if (!replyText) {
@@ -3378,7 +3584,6 @@
             replyText = `Here is what is currently stored in your personal memory ledger (${userMemories.length} total items):\n\n${topMems}`;
           }
         } else {
-          // Grounded local answer from the user's actual uploaded document
           const queryWords = userQuery
             .toLowerCase()
             .split(/\W+/)
@@ -3396,12 +3601,19 @@
         }
       }
 
+      // Ensure the 3-dot texting bubble shows for at least 850ms so it feels like real texting
+      const elapsed = Date.now() - typingStartedAt;
+      if (elapsed < 850) {
+        await new Promise((r) => setTimeout(r, 850 - elapsed));
+      }
+
       isChatThinking = false;
       isChatStreaming = true;
       const targetIdx = chatMessages.length;
       chatMessages.push({ role: "gojo", content: "" });
       await streamTextIntoMessage(targetIdx, replyText);
       isChatStreaming = false;
+      renderChat();
     }
 
     function handlePrint() {
