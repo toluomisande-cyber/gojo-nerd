@@ -3039,7 +3039,7 @@
           const isLastAndStreaming = isChatStreaming && idx === chatMessages.length - 1 && msg.role !== "user";
           if (msg.role === "user") {
             return `
-              <div class="flex flex-col items-end gap-1.5 max-w-[88%] ml-auto msg-bubble-anim">
+              <div class="flex flex-col items-end gap-1.5 max-w-[88%] ml-auto">
                 <div class="flex flex-wrap gap-1.5 justify-end">
                   <span class="inline-flex h-6 items-center gap-1.5 rounded-full bg-brandSky border border-[#C5DFFF] px-2.5 text-[10px] font-mono text-brandNavy font-semibold shadow-2xs">
                     <svg class="w-3 h-3 text-brandIndigo shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3059,7 +3059,7 @@
                 <div class="flex items-center justify-between w-full gap-2 px-1">
                   <div class="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-brandIndigo">
                     <span>Study Assistant</span>
-                    ${isLastAndStreaming ? '<span class="text-[10px] text-[#64748B] font-normal">· typing...</span>' : ""}
+                    <span id="chat-msg-status-${idx}" class="text-[10px] text-[#64748B] font-normal ${isLastAndStreaming ? "" : "hidden"}">· typing...</span>
                   </div>
                   <button
                     type="button"
@@ -3069,7 +3069,7 @@
                     Save to memory
                   </button>
                 </div>
-                <div class="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 text-xs sm:text-[13px] leading-relaxed text-slate-800 shadow-sm">
+                <div id="chat-msg-bubble-${idx}" class="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 text-xs sm:text-[13px] leading-relaxed text-slate-800 shadow-sm">
                   ${formatChatMarkdown(msg.content)}${isLastAndStreaming ? '<span class="typing-caret"></span>' : ""}
                 </div>
               </div>
@@ -3466,9 +3466,20 @@
     async function streamTextIntoMessage(targetIndex, fullText) {
       const tokens = String(fullText || "").match(/\S+\s*/g) || [String(fullText || "")];
       chatMessages[targetIndex].content = "";
+      renderChat();
+
+      const box = document.getElementById("chat-messages-box");
+      const bubbleEl = document.getElementById(`chat-msg-bubble-${targetIndex}`);
+      const statusEl = document.getElementById(`chat-msg-status-${targetIndex}`);
+
       for (let i = 0; i < tokens.length; i++) {
         chatMessages[targetIndex].content += tokens[i];
-        renderChat();
+        if (bubbleEl) {
+          bubbleEl.innerHTML = `${formatChatMarkdown(chatMessages[targetIndex].content)}<span class="typing-caret"></span>`;
+        }
+        if (box) {
+          box.scrollTop = box.scrollHeight;
+        }
         const token = tokens[i].trim();
         const isSentenceEnd = /[.!?]$/.test(token);
         const isClausePause = /[,;:—]$/.test(token);
@@ -3476,7 +3487,13 @@
         const extraPause = isSentenceEnd ? 140 : isClausePause ? 65 : 0;
         await new Promise((r) => setTimeout(r, baseDelay + extraPause));
       }
-      renderChat();
+
+      if (bubbleEl) {
+        bubbleEl.innerHTML = formatChatMarkdown(chatMessages[targetIndex].content);
+      }
+      if (statusEl) {
+        statusEl.classList.add("hidden");
+      }
     }
 
     async function handleSendMessage(e) {
@@ -3613,7 +3630,8 @@
       chatMessages.push({ role: "gojo", content: "" });
       await streamTextIntoMessage(targetIdx, replyText);
       isChatStreaming = false;
-      renderChat();
+      updateQuotaBadgeUI();
+      updateChatPresenceUI();
     }
 
     function handlePrint() {
