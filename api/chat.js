@@ -107,6 +107,37 @@ async function queryFreeLimitedModel(message, documentContext, userMemory, histo
         }))
       : [];
 
+    const openRouterKey = (process.env.OPENROUTER_API_KEY || '').trim();
+    if (openRouterKey) {
+      const orModel = (process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free').trim();
+      const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openRouterKey}`,
+          'HTTP-Referer': 'https://gojo-nerd.vercel.app',
+          'X-Title': 'Gojo Study Assistant',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: orModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...recentHistory,
+            { role: 'user', content: String(message).slice(0, 1000) },
+          ],
+          temperature: 0.3,
+        }),
+      });
+      if (orRes.ok) {
+        const orData = await orRes.json();
+        const orText = orData && orData.choices && orData.choices[0] && orData.choices[0].message && orData.choices[0].message.content;
+        if (orText && typeof orText === 'string' && orText.trim().length > 5) {
+          return orText.trim();
+        }
+      }
+    }
+
     const res = await fetch('https://text.pollinations.ai/openai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
