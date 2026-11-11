@@ -1,38 +1,111 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+function buildDocumentReferenceReply(
+  message: string,
+  documentContext: string,
+  userMemory: any,
+  autoSavedMemory: any
+) {
+  const q = String(message || "").trim();
+  const qLower = q.toLowerCase();
+  const doc = String(documentContext || "").trim();
 
-const CANDIDATE_MODELS = [
-  'gemini-3.1-flash-lite',
-  'gemini-3.5-flash',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-];
-
-async function executeWithModelFallback(config: any, operation: (model: any) => Promise<any>) {
-  let lastError: any = null;
-  for (const modelName of CANDIDATE_MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({ ...config, model: modelName });
-      return await operation(model);
-    } catch (err: any) {
-      lastError = err;
-      console.warn(`[Gemini Fallback] Model ${modelName} failed (${err.message?.slice(0, 70)}). Trying next candidate...`);
-    }
+  if (autoSavedMemory) {
+    return `Saved to your personal memory ledger under **${autoSavedMemory.category.replace(
+      "_",
+      " "
+    )}**:\n\n"${autoSavedMemory.content}"\n\nYou can review or filter this entry anytime in the **Personal Memory** tab.`;
   }
-  throw lastError;
+
+  const memories =
+    userMemory && Array.isArray(userMemory.memories) ? userMemory.memories : [];
+  if (
+    /\b(my memory|my memories|weak spot|weak spots|what did i miss|saved notes|what do you remember)\b/i.test(
+      qLower
+    )
+  ) {
+    if (memories.length === 0) {
+      return `No entries are stored in your personal memory ledger yet. You can save any syllabus mechanism using **Save to memory** or add a note directly in the **Personal Memory** tab.`;
+    }
+    const summaryList = memories
+      .slice(0, 5)
+      .map((m: any, idx: number) => `${idx + 1}. **[${m.category || "note"}]** ${m.content}`)
+      .join("\n");
+    return `Here are the most recent entries in your personal memory ledger:\n\n${summaryList}`;
+  }
+
+  const sentences = doc
+    .replace(/\r\n/g, "\n")
+    .split(/(?<=[.!?])\n+|\n+|(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 20);
+
+  if (sentences.length === 0) {
+    return `No source passages matched "${q}". Upload a syllabus PDF or paste lecture notes in the left pane to index the document.`;
+  }
+
+  if (/\b(trap|insight|pitfall|mistake|trick|exam)\b/i.test(qLower)) {
+    const trapLine =
+      sentences.find((s) =>
+        /\b(trap|insight|not|solely|only|however|unlike|whereas|exception)\b/i.test(s)
+      ) || sentences[0];
+    return `**Exam nuance from source material:**\n\n${trapLine}\n\nFocus on distinguishing the primary mechanism from secondary steps when reviewing this section.`;
+  }
+
+  const keywords = (qLower.match(/\b[a-z0-9]{4,}\b/g) || []).filter(
+    (w) =>
+      ![
+        "what",
+        "where",
+        "when",
+        "which",
+        "explain",
+        "describe",
+        "about",
+        "from",
+        "this",
+        "that",
+        "with",
+        "into",
+        "does",
+        "mean",
+        "primary",
+        "compare",
+      ].includes(w)
+  );
+
+  const scored = sentences.map((s) => {
+    const lower = s.toLowerCase();
+    let score = 0;
+    for (const kw of keywords) {
+      if (lower.includes(kw)) score += 3;
+    }
+    return { s, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  const topMatches = scored
+    .filter((item) => item.score > 0)
+    .slice(0, 3)
+    .map((item) => item.s);
+
+  const selected = topMatches.length > 0 ? topMatches : sentences.slice(0, 3);
+
+  return `**Referenced passages from active syllabus:**\n\n${selected
+    .map((line) => `- ${line}`)
+    .join("\n\n")}`;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, documentContext, history, userMemory } = await req.json();
+    const body = await req.json();
+    const { message, documentContext, userMemory } = body;
 
     if (!message || !message.trim()) {
-      return NextResponse.json({ error: "Message cannot be empty." }, { status: 400 });
+      return NextResponse.json({ error: "Query cannot be empty." }, { status: 400 });
     }
 
-    let autoSavedMemory = null;
+    let autoSavedMemory: any = null;
     const memMatch = String(message)
       .trim()
       .match(
@@ -46,60 +119,24 @@ export async function POST(req: NextRequest) {
         id: `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         category: isExam ? "exam_focus" : isWeak ? "weak_spot" : "note",
         content: String(message).trim(),
-        source: "Document assistant",
+        source: "Course reference",
         createdAt: new Date().toISOString(),
       };
     }
 
-    const memoryContextLines: string[] = [];
-    if (userMemory && typeof userMemory === "object") {
-      if (userMemory.name || userMemory.major) {
-        memoryContextLines.push(`Student: ${userMemory.name || "Student"} (${userMemory.major || "General studies"})`);
-      }
-      if (Array.isArray(userMemory.memories) && userMemory.memories.length > 0) {
-        const formatted = userMemory.memories
-          .slice(0, 25)
-          .map((m: any) => `- [${m.category || "note"}] ${m.content} (${m.source || "Saved"})`)
-          .join("\n");
-        memoryContextLines.push(`Stored User Memories & Weak Spots:\n${formatted}`);
-      }
-    }
-    const memoryBlock =
-      memoryContextLines.length > 0
-        ? `\n\nINTEGRATED STUDENT MEMORY (Use this to personalize explanations and connect to the student's stored notes, exam focus, and past weak spots):\n"""\n${memoryContextLines.join("\n\n")}\n"""`
-        : "";
-
-    const reply = await executeWithModelFallback({
-      temperature: 0.4,
-      systemInstruction: `You are Gojo Sensei from Gojo.nerd. You are an effortlessly brilliant academic mentor who speaks with supreme confidence, wit, and total clarity, equipped with integrated personal memory for the current student.
-
-STRICT CONSTRAINTS:
-1. Base all answers strictly on the provided DOCUMENT CONTEXT and INTEGRATED STUDENT MEMORY below.
-2. If the student asks about their stored memories, weak spots, or notes, reference their INTEGRATED STUDENT MEMORY directly.
-3. If the student tells you to remember a preference, exam date, or note, confirm that you have stored it in their personal memory ledger.
-4. Ban corporate filler ("Certainly!", "I'd be glad to help!"). Jump straight into the explanation.
-5. Keep responses concise (2 to 4 punchy paragraphs max).
-
-DOCUMENT CONTEXT:
-"""
-${(documentContext || "").slice(0, 50000)}
-"""${memoryBlock}`,
-    }, async (model) => {
-      const chat = model.startChat({
-        history: (history || []).map((h: { role: string; content: string }) => ({
-          role: h.role === "user" ? "user" : "model",
-          parts: [{ text: h.content }],
-        })),
-      });
-
-      const result = await chat.sendMessage(message);
-      return result.response.text();
-    });
+    const reply = buildDocumentReferenceReply(
+      message,
+      documentContext || "",
+      userMemory,
+      autoSavedMemory
+    );
 
     return NextResponse.json({ reply, autoSavedMemory });
   } catch (err: any) {
-    console.error("Sensei Chat API Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to contact Sensei." }, { status: 500 });
+    console.error("Document lookup error:", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to search document." },
+      { status: 500 }
+    );
   }
 }
-

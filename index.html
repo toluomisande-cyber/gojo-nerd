@@ -204,7 +204,7 @@
             <img id="image-preview-thumb" src="" alt="Uploaded preview" class="w-10 h-10 object-cover rounded border border-[#E2E8F0] shrink-0" />
             <div class="min-w-0">
               <div id="image-preview-name" class="text-[11px] font-semibold text-brandNavy truncate">image.png</div>
-              <div id="image-preview-meta" class="text-[10px] font-mono text-[#64748B]">Visual Vision Ready</div>
+              <div id="image-preview-meta" class="text-[10px] font-mono text-[#64748B]">Image attached</div>
             </div>
           </div>
           <button
@@ -239,14 +239,14 @@
           onclick="handleSynthesize()"
           class="mt-3 w-full py-2.5 px-4 rounded-lg bg-brandIndigo hover:opacity-95 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
         >
-          <span id="synthesize-btn-label">Synthesize Study Canvas</span>
+          <span id="synthesize-btn-label">Build Study Guide</span>
           <span class="font-mono">&rarr;</span>
         </button>
       </div>
 
       <div class="p-3 border-t border-brandNavy bg-brandNavy text-[11px] font-mono text-white/90 flex justify-between">
-        <span id="sidebar-status">STATUS: READY</span>
-        <span class="text-[#93C5FD] font-semibold">ENGINE: GEMINI FLASH</span>
+        <span id="sidebar-status">Ready</span>
+        <span class="text-[#93C5FD] font-semibold">Syllabus Indexer</span>
       </div>
     </aside>
 
@@ -282,7 +282,7 @@
             onclick="setActiveTab('chat')"
             class="h-full px-1 text-xs transition-all flex items-center text-[#64748B] hover:text-brandNavy font-medium"
           >
-            Document Assistant
+            Course Reference
           </button>
           <button
             id="tab-btn-memory"
@@ -295,7 +295,7 @@
         </div>
 
         <div class="text-[11px] font-mono text-[#64748B]">
-          CONTEXT: <span id="tab-strip-memory-badge" class="px-2 py-0.5 rounded bg-brandSky text-brandNavy font-semibold border border-[#C5DFFF]">USER MEMORY ACTIVE</span>
+          <span id="tab-strip-memory-badge" class="px-2 py-0.5 rounded bg-brandSky text-brandNavy font-semibold border border-[#C5DFFF]">Saved notes</span>
         </div>
       </div>
 
@@ -427,22 +427,18 @@
           </div>
         </div>
 
-        <!-- 4. DOCUMENT ASSISTANT (PRESTIGE UI UPGRADE) -->
+        <!-- 4. COURSE REFERENCE & DOCUMENT LOOKUP -->
         <div id="view-chat" class="hidden max-w-2xl mx-auto space-y-4">
           <div class="bg-white border border-[#E2E8F0] rounded-2xl h-[calc(100dvh-200px)] md:h-[500px] flex flex-col shadow-sm overflow-hidden">
-            <!-- Header bar inside the assistant -->
+            <!-- Header bar -->
             <div class="px-4 py-3 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-white shrink-0">
               <div class="flex items-center gap-2 min-w-0">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                <span class="font-mono font-bold text-brandNavy truncate">Gojo // Document In-Depth Assistant</span>
-                <span class="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-brandSky text-brandIndigo font-semibold border border-[#C5DFFF] shrink-0">Strictly Grounded</span>
+                <span class="font-mono font-bold text-brandNavy truncate">Course Reference &amp; Document Lookup</span>
               </div>
               <div class="flex items-center gap-2 text-[11px] font-mono text-[#64748B] shrink-0">
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200">
-                  <svg class="w-3.5 h-3.5 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span class="font-semibold text-brandNavy">Gemini Flash</span>
+                  <span class="font-semibold text-brandNavy">Source Index</span>
                 </span>
               </div>
             </div>
@@ -450,7 +446,7 @@
             <!-- Messages Stream Area -->
             <div id="chat-messages-box" class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs leading-relaxed"></div>
 
-            <!-- PRESTIGE UI PROMPT COMPOSER -->
+            <!-- COMPOSER -->
             <div class="p-2.5 sm:p-3.5 border-t border-[#E2E8F0] bg-[#F8F9FA]/50 shrink-0">
               <form id="chat-composer-form" onsubmit="handleSendMessage(event)" class="bg-white border border-[#CBD5E1] focus-within:border-brandIndigo focus-within:ring-2 focus-within:ring-brandIndigo/10 rounded-2xl p-2.5 sm:p-3 shadow-sm transition-all">
                 <!-- Attachments Pill Strip -->
@@ -462,7 +458,7 @@
                     <span id="chat-active-attachment-name" class="truncate">Cellular_Respiration_Core.pdf</span>
                   </span>
                   <span class="inline-flex h-6 items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 text-[10px] font-mono text-[#64748B]">
-                    <span>⚡ Full-Deck Search Active</span>
+                    <span>Full-document index</span>
                   </span>
                 </div>
 
@@ -470,7 +466,7 @@
                 <textarea
                   id="chat-input-field"
                   rows="2"
-                  placeholder="Ask about concepts, formulas, slide mechanisms, or traps..."
+                  placeholder="Search concepts, formulas, slide mechanisms, or add a note..."
                   class="w-full bg-transparent border-0 p-1 text-xs sm:text-[13px] text-brandNavy placeholder:text-[#64748B] focus:outline-none resize-none leading-relaxed font-sans"
                   onkeydown="handleChatInputKeydown(event)"
                 ></textarea>
@@ -479,19 +475,16 @@
                 <div class="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-1">
                   <div class="flex items-center gap-1.5 text-[11px] font-mono text-[#64748B]">
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-brandNavy font-semibold">
-                      <svg class="w-3 h-3 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Grounded Mode
+                      Direct Reference
                     </span>
-                    <span class="hidden sm:inline text-slate-400 text-[10px]">• Enter ↵ to send</span>
+                    <span class="hidden sm:inline text-slate-400 text-[10px]">• Enter to search</span>
                   </div>
 
                   <button
                     type="submit"
                     id="chat-send-btn"
                     class="w-8 h-8 rounded-full bg-brandIndigo hover:opacity-90 active:scale-95 text-white flex items-center justify-center transition-all shadow-sm disabled:opacity-40 shrink-0"
-                    title="Send message"
+                    title="Search document"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -552,7 +545,7 @@
                 <img id="mobile-image-preview-thumb" src="" alt="Uploaded preview" class="w-11 h-11 object-cover rounded-md border border-[#E2E8F0] shrink-0" />
                 <div class="min-w-0">
                   <div id="mobile-image-preview-name" class="text-xs font-semibold text-brandNavy truncate">slide.png</div>
-                  <div id="mobile-image-preview-meta" class="text-[10px] font-mono text-[#64748B]">Ready for AI Vision</div>
+                  <div id="mobile-image-preview-meta" class="text-[10px] font-mono text-[#64748B]">Image attached</div>
                 </div>
               </div>
               <button
@@ -565,7 +558,7 @@
             </div>
           </div>
 
-          <!-- Notes Buffer & Synthesize Button Card -->
+          <!-- Notes Buffer & Build Button Card -->
           <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 shadow-sm space-y-3">
             <div class="flex items-center justify-between text-xs font-mono">
               <span class="font-bold text-brandNavy">2. Source Notes Buffer</span>
@@ -592,7 +585,7 @@
               onclick="handleSynthesize()"
               class="w-full h-12 rounded-xl bg-brandIndigo active:scale-[0.99] hover:opacity-95 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-60"
             >
-              <span id="mobile-synthesize-btn-label">Synthesize Study Canvas</span>
+              <span id="mobile-synthesize-btn-label">Build Study Guide</span>
               <span class="font-mono text-base">&rarr;</span>
             </button>
           </div>
@@ -612,7 +605,7 @@
                 </span>
               </div>
               <p id="memory-owner-subhead" class="text-[13px] leading-[19px] text-[#4B5565] mt-1">
-                Stores your course notes, exam focus, missed recall checks, and uploaded syllabi. Automatically used by the Document Assistant and synthesis engine.
+                Stores your course notes, exam focus, missed recall checks, and uploaded syllabi for quick reference.
               </p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -632,7 +625,7 @@
               <label for="manual-memory-input" class="text-[13px] font-medium text-[#111827]">
                 Store information in your memory
               </label>
-              <span class="text-[12px] text-[#6B7487]">Included in every assistant &amp; synthesis session</span>
+              <span class="text-[12px] text-[#6B7487]">Saved to your personal study record</span>
             </div>
             <div class="flex flex-col sm:flex-row gap-2.5">
               <select
@@ -730,7 +723,7 @@
       </svg>
       <span class="text-[10px] font-mono tracking-tight">Cards</span>
     </button>
-    <!-- 4. Assistant -->
+    <!-- 4. Lookup -->
     <button
       type="button"
       id="mobile-nav-chat"
@@ -740,7 +733,7 @@
       <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
-      <span class="text-[10px] font-mono tracking-tight">Sensei</span>
+      <span class="text-[10px] font-mono tracking-tight">Reference</span>
     </button>
     <!-- 5. Memory -->
     <button
@@ -1475,8 +1468,8 @@
       const stripBadge = document.getElementById("tab-strip-memory-badge");
       if (stripBadge) {
         stripBadge.textContent = currentStudent
-          ? `${currentStudent.name.split(" ")[0].toUpperCase()} // ${userMemories.length} MEMORIES`
-          : `SESSION // ${userMemories.length} MEMORIES`;
+          ? `${currentStudent.name.split(" ")[0]} · ${userMemories.length} saved`
+          : `${userMemories.length} saved`;
       }
     }
 
@@ -1561,7 +1554,7 @@
       const msg = chatMessages[idx];
       if (!msg || !msg.content) return;
       const cleanSnippet = msg.content.length > 260 ? msg.content.slice(0, 257) + "..." : msg.content;
-      addMemoryEntry("note", cleanSnippet, `Document assistant · ${studyData.filename}`);
+      addMemoryEntry("note", cleanSnippet, `Course reference · ${studyData.filename}`);
       renderChat();
     }
 
@@ -1612,7 +1605,7 @@
       }
       if (subhead) {
         subhead.textContent = currentStudent
-          ? `Personal knowledge store for ${currentStudent.name} (${currentStudent.major || "Student"}). Automatically informs synthesis and Document Assistant answers.`
+          ? `Personal knowledge store for ${currentStudent.name} (${currentStudent.major || "Student"}). Keeps your course notes, exam focus, and missed recall checks in one place.`
           : "Stores your course notes, exam focus, missed recall checks, and uploaded syllabi for this session.";
       }
 
@@ -1628,9 +1621,9 @@
         if (filtered.length === 0) {
           listEl.innerHTML = `
             <div class="p-8 text-center">
-              <div class="text-[14px] font-medium text-[#111827]">No stored memories in this view yet</div>
+              <div class="text-[14px] font-medium text-[#111827]">No stored notes in this view yet</div>
               <p class="text-[13px] text-[#6B7487] mt-1 max-w-md mx-auto">
-                Add a note above, click "Save to memory" on any syllabus mechanism, tell the Document Assistant "Remember that...", or complete Active Recall drills to automatically log weak spots.
+                Add a note above, click "Save to memory" on any syllabus mechanism, or complete Active Recall drills to automatically log weak spots.
               </p>
             </div>
           `;
@@ -2293,7 +2286,7 @@
       return { text: cleanedText, scannedImage: null, pageCount: totalPages };
     }
 
-    // --- OPTIONAL CLIENT-SIDE OCR FALLBACK (When Gemini API key is not set on server) ---
+    // --- OPTIONAL CLIENT-SIDE OCR FALLBACK ---
     async function runClientOcrFallback(dataUrl, timeoutMs = 8000) {
       try {
         if (!window.Tesseract) {
@@ -2829,16 +2822,11 @@
       if (!hasUserMessages) {
         html += `
           <div class="text-center py-5 sm:py-7 px-2 max-w-lg mx-auto transition-opacity duration-300">
-            <div class="w-11 h-11 rounded-2xl bg-brandSky text-brandIndigo flex items-center justify-center mx-auto mb-3 shadow-sm border border-[#C5DFFF]">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
             <h3 class="text-lg sm:text-xl font-serif font-bold text-brandNavy tracking-tight">
-              What are we working on today?
+              Search active syllabus
             </h3>
             <p class="text-xs text-[#64748B] mt-1.5 leading-relaxed max-w-sm mx-auto">
-              Ask deep questions about "${escapeHtml(studyData.filename)}", clarify tricky exam nuances, or step through complex mechanisms.
+              Look up passages in "${escapeHtml(studyData.filename)}", review exam nuances, or step through documented mechanisms.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-1.5 mt-4">
               <button
@@ -2846,21 +2834,21 @@
                 onclick="setPromptQuery('Explain the primary foundational mechanism step-by-step')"
                 class="text-[11px] font-mono px-3 py-1.5 rounded-full bg-white border border-[#CBD5E1] text-brandNavy hover:border-brandIndigo hover:bg-brandSky/40 transition-colors shadow-2xs"
               >
-                💡 Primary mechanism
+                Primary mechanism
               </button>
               <button
                 type="button"
                 onclick="setPromptQuery('What is the Professor\\'s key exam insight and primary trap?')"
                 class="text-[11px] font-mono px-3 py-1.5 rounded-full bg-white border border-[#CBD5E1] text-brandNavy hover:border-brandIndigo hover:bg-brandSky/40 transition-colors shadow-2xs"
               >
-                🎯 Professor's exam insight
+                Exam insight
               </button>
               <button
                 type="button"
                 onclick="setPromptQuery('Compare the most confusing vocabulary terms in this lecture')"
                 class="text-[11px] font-mono px-3 py-1.5 rounded-full bg-white border border-[#CBD5E1] text-brandNavy hover:border-brandIndigo hover:bg-brandSky/40 transition-colors shadow-2xs"
               >
-                ⚡ Compare confusing terms
+                Compare key terms
               </button>
             </div>
           </div>
@@ -2891,10 +2879,7 @@
               <div class="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
                 <div class="flex items-center justify-between w-full gap-2 px-1">
                   <div class="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-brandIndigo">
-                    <svg class="w-3.5 h-3.5 text-brandIndigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <span>Gemini 2.5 Flash // Memory-Integrated</span>
+                    <span>Syllabus Reference</span>
                   </div>
                   <button
                     type="button"
@@ -2913,18 +2898,17 @@
         })
         .join("");
 
-      // Thinking State (faint Prestige skeleton lines)
+      // Loading State
       if (isChatThinking) {
         html += `
           <div class="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
             <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-brandIndigo px-1">
-              <span class="w-2 h-2 rounded-full bg-brandIndigo animate-ping"></span>
-              <span class="animate-pulse">Thinking &amp; Scanning Slide Context...</span>
+              <span>Searching syllabus sections...</span>
             </div>
             <div class="w-full rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 shadow-sm flex flex-col gap-2.5">
-              <div class="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style="width: 94%"></div>
-              <div class="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style="width: 86%"></div>
-              <div class="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style="width: 48%"></div>
+              <div class="h-2.5 rounded-full bg-slate-200/90" style="width: 94%"></div>
+              <div class="h-2.5 rounded-full bg-slate-200/90" style="width: 86%"></div>
+              <div class="h-2.5 rounded-full bg-slate-200/90" style="width: 48%"></div>
             </div>
           </div>
         `;
@@ -2944,7 +2928,7 @@
       if (box && thumb && title && meta) {
         thumb.src = imgPayload.dataUrl;
         title.textContent = name || "Uploaded Image";
-        meta.textContent = `${imgPayload.width}×${imgPayload.height}px • Ready for Vision Synthesis`;
+        meta.textContent = `${imgPayload.width}×${imgPayload.height}px • Attached`;
         box.classList.remove("hidden");
       }
 
@@ -2955,7 +2939,7 @@
       if (mobileBox && mobileThumb && mobileTitle && mobileMeta) {
         mobileThumb.src = imgPayload.dataUrl;
         mobileTitle.textContent = name || "Uploaded Image";
-        mobileMeta.textContent = `${imgPayload.width}×${imgPayload.height}px • Vision Ready`;
+        mobileMeta.textContent = `${imgPayload.width}×${imgPayload.height}px • Attached`;
         mobileBox.classList.remove("hidden");
       }
     }
@@ -3020,24 +3004,24 @@
         if (mobileTextarea) mobileTextarea.value = textVal;
       };
 
-      setProcText(`Processing ${file.name}...`, "Preparing content for synthesis...");
-      if (status) status.textContent = "STATUS: READING FILE";
+      setProcText(`Reading ${file.name}...`, "Extracting document sections...");
+      if (status) status.textContent = "Reading file...";
 
       try {
         const lowerName = (file.name || "").toLowerCase();
         if (isImageFile(file)) {
-          setProcText(`Processing ${file.name}...`, "Optimizing image for Vision AI...");
+          setProcText(`Reading ${file.name}...`, "Preparing slide image...");
           const compressed = await withTimeout(compressImageFileToBase64(file), 5000, null);
           if (compressed) {
             uploadedImagePayload = compressed;
             showImagePreview(file.name, compressed);
-            setBufferText(`[Visual Source Loaded: ${file.name} (${compressed.width}×${compressed.height}px)]\nAnalyzing slide/image text and diagrams...`);
+            setBufferText(`[Visual Source Loaded: ${file.name} (${compressed.width}×${compressed.height}px)]\nIndexing slide text and diagrams...`);
           }
         } else if (lowerName.endsWith(".pdf") || file.type === "application/pdf") {
-          setProcText(`Processing ${file.name}...`, "Scanning slides & pages...");
+          setProcText(`Reading ${file.name}...`, "Scanning slides & pages...");
           const pdfResult = await withTimeout(
             extractPdfTextAndImageClient(file, (curr, total) => {
-              setProcText(`Processing ${file.name}...`, `Scanning slide ${curr} of ${total}...`);
+              setProcText(`Reading ${file.name}...`, `Scanning slide ${curr} of ${total}...`);
             }),
             15000,
             { text: "", scannedImage: null, pageCount: 0 }
@@ -3066,13 +3050,13 @@
           }
         }
       } catch (err) {
-        console.warn("Client extraction notice, proceeding to synthesis:", err);
+        console.warn("Client extraction notice, proceeding to index:", err);
       } finally {
-        setProcText(file.name, "Synthesizing study canvas...");
+        setProcText(file.name, "Building study guide...");
       }
 
       await handleSynthesize();
-      setProcText(file.name, "Analyzed • Tap to replace or upload another");
+      setProcText(file.name, "Indexed • Tap to replace or upload another");
     }
 
     function handleLoadSample() {
@@ -3112,13 +3096,13 @@
       const status = document.getElementById("sidebar-status");
       const bannerStatus = document.getElementById("banner-status-text");
 
-      const loadingText = uploadedImagePayload ? "Synthesizing Image..." : "Synthesizing Document...";
+      const loadingText = uploadedImagePayload ? "Indexing Image..." : "Building Study Guide...";
       if (btn) btn.disabled = true;
       if (label) label.textContent = loadingText;
       if (mobileBtn) mobileBtn.disabled = true;
       if (mobileLabel) mobileLabel.textContent = loadingText;
-      if (status) status.textContent = "STATUS: SYNTHESIZING";
-      if (bannerStatus) bannerStatus.textContent = "ANALYZING...";
+      if (status) status.textContent = "Indexing...";
+      if (bannerStatus) bannerStatus.textContent = "INDEXING...";
 
       const activeFilename = file
         ? file.name
@@ -3168,7 +3152,7 @@
           textarea.value = result.extractedText;
         }
 
-        // Set real, topic-clustered AI output into state
+        // Set structured curriculum output into state
         studyData = {
           filename: activeFilename,
           unit_title: result.data.unit_title || activeFilename,
@@ -3221,10 +3205,10 @@
       } finally {
         isSynthesizing = false;
         if (btn) btn.disabled = false;
-        if (label) label.textContent = "Synthesize Study Canvas";
+        if (label) label.textContent = "Build Study Guide";
         if (mobileBtn) mobileBtn.disabled = false;
-        if (mobileLabel) mobileLabel.textContent = "Synthesize Study Canvas";
-        if (status) status.textContent = "STATUS: READY";
+        if (mobileLabel) mobileLabel.textContent = "Build Study Guide";
+        if (status) status.textContent = "Ready";
         if (bannerStatus) bannerStatus.textContent = "VERIFIED";
       }
     }
@@ -3343,7 +3327,7 @@
           : /struggle|confus|hard|weak|miss/i.test(lowerQ)
           ? "weak_spot"
           : "note";
-        addMemoryEntry(cat, userQuery, "Document assistant");
+        addMemoryEntry(cat, userQuery, "Course reference");
       }
 
       let replyText = "";
@@ -3370,7 +3354,7 @@
           addMemoryEntry(
             data.autoSavedMemory.category || "note",
             data.autoSavedMemory.content,
-            data.autoSavedMemory.source || "Document assistant"
+            data.autoSavedMemory.source || "Course reference"
           );
         }
         if (res.ok && data && data.reply) {

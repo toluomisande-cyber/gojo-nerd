@@ -1,39 +1,69 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+function buildDocumentReferenceReply(message, documentContext, userMemory, autoSavedMemory) {
+  const q = String(message || '').trim();
+  const qLower = q.toLowerCase();
+  const doc = String(documentContext || '').trim();
 
-const CANDIDATE_MODELS = [
-  'gemini-3.1-flash-lite',
-  'gemini-3.5-flash',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-];
-
-function withModelTimeout(promise, ms = 7500) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Model call timed out after ${ms}ms`)), ms)
-    ),
-  ]);
-}
-
-async function executeWithModelFallback(genAI, config, operation) {
-  let lastError = null;
-  for (const modelName of CANDIDATE_MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({ ...config, model: modelName });
-      return await withModelTimeout(operation(model), 7500);
-    } catch (err) {
-      lastError = err;
-      console.warn(`[Gemini Fallback] Model ${modelName} failed: ${err.message?.slice(0, 80)}`);
-    }
+  if (autoSavedMemory) {
+    return `Saved to your personal memory ledger under **${autoSavedMemory.category.replace('_', ' ')}**:\n\n"${autoSavedMemory.content}"\n\nYou can review or filter this entry anytime in the **Personal Memory** tab.`;
   }
-  throw lastError;
+
+  const memories = (userMemory && Array.isArray(userMemory.memories)) ? userMemory.memories : [];
+  if (/\b(my memory|my memories|weak spot|weak spots|what did i miss|saved notes|what do you remember)\b/i.test(qLower)) {
+    if (memories.length === 0) {
+      return `No entries are stored in your personal memory ledger yet. You can save any syllabus mechanism using **Save to memory** or add a note directly in the **Personal Memory** tab.`;
+    }
+    const summaryList = memories
+      .slice(0, 5)
+      .map((m, idx) => `${idx + 1}. **[${m.category || 'note'}]** ${m.content}`)
+      .join('\n');
+    return `Here are the most recent entries in your personal memory ledger:\n\n${summaryList}`;
+  }
+
+  const sentences = doc
+    .replace(/\r\n/g, '\n')
+    .split(/(?<=[.!?])\n+|\n+|(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 20);
+
+  if (sentences.length === 0) {
+    return `No source passages matched "${q}". Upload a syllabus PDF or paste lecture notes in the left pane to index the document.`;
+  }
+
+  if (/\b(trap|insight|pitfall|mistake|trick|exam)\b/i.test(qLower)) {
+    const trapLine = sentences.find((s) => /\b(trap|insight|not|solely|only|however|unlike|whereas|exception)\b/i.test(s)) || sentences[0];
+    return `**Exam nuance from source material:**\n\n${trapLine}\n\nFocus on distinguishing the primary mechanism from secondary steps when reviewing this section.`;
+  }
+
+  const keywords = (qLower.match(/\b[a-z0-9]{4,}\b/g) || []).filter(
+    (w) => !['what', 'where', 'when', 'which', 'explain', 'describe', 'about', 'from', 'this', 'that', 'with', 'into', 'does', 'mean', 'primary', 'compare'].includes(w)
+  );
+
+  const scored = sentences.map((s) => {
+    const lower = s.toLowerCase();
+    let score = 0;
+    for (const kw of keywords) {
+      if (lower.includes(kw)) score += 3;
+    }
+    return { s, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  const topMatches = scored
+    .filter((item) => item.score > 0)
+    .slice(0, 3)
+    .map((item) => item.s);
+
+  const selected = topMatches.length > 0 ? topMatches : sentences.slice(0, 3);
+
+  return `**Referenced passages from active syllabus:**\n\n${selected.map((line) => `- ${line}`).join('\n\n')}`;
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (typeof res.setHeader === 'function') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -44,11 +74,6 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-      return res.status(400).json({ error: 'Gemini API key is not configured yet.' });
-    }
-
     let body = req.body;
     if (!body || typeof body === 'string' || Buffer.isBuffer(body)) {
       if (Buffer.isBuffer(body)) {
@@ -65,14 +90,15 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const { message, documentContext, history, userMemory } = body;
+    const { message, documentContext, userMemory } = body;
     if (!message || !message.trim()) {
-      return res.status(400).json({ error: 'Message cannot be empty.' });
+      return res.status(400).json({ error: 'Query cannot be empty.' });
     }
 
-    // Detect explicit memory storage commands from the user message
     let autoSavedMemory = null;
-    const memMatch = String(message).trim().match(/^(?:please\s+)?(?:remember(?:\s+that)?|save(?:\s+to\s+memory)?|store(?:\s+in\s+memory)?|note\s+that|keep\s+in\s+mind(?:\s+that)?|my\s+exam\s+is|i\s+struggle\s+with)\s*[:,-]?\s*(.+)$/i);
+    const memMatch = String(message)
+      .trim()
+      .match(/^(?:please\s+)?(?:remember(?:\s+that)?|save(?:\s+to\s+memory)?|store(?:\s+in\s+memory)?|note\s+that|keep\s+in\s+mind(?:\s+that)?|my\s+exam\s+is|i\s+struggle\s+with)\s*[:,-]?\s*(.+)$/i);
     if (memMatch && memMatch[1] && memMatch[1].trim().length > 3) {
       const lowerMsg = String(message).toLowerCase();
       const isExam = /exam|midterm|final|quiz|test|date/i.test(lowerMsg);
@@ -81,59 +107,15 @@ module.exports = async function handler(req, res) {
         id: `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         category: isExam ? 'exam_focus' : isWeak ? 'weak_spot' : 'note',
         content: String(message).trim(),
-        source: 'Document assistant',
+        source: 'Course reference',
         createdAt: new Date().toISOString(),
       };
     }
 
-    const memoryContextLines = [];
-    if (userMemory && typeof userMemory === 'object') {
-      if (userMemory.name || userMemory.major) {
-        memoryContextLines.push(`Student: ${userMemory.name || 'Student'} (${userMemory.major || 'General studies'})`);
-      }
-      if (Array.isArray(userMemory.memories) && userMemory.memories.length > 0) {
-        const formatted = userMemory.memories
-          .slice(0, 25)
-          .map((m) => `- [${m.category || 'note'}] ${m.content} (${m.source || 'Saved'})`)
-          .join('\n');
-        memoryContextLines.push(`Stored User Memories & Weak Spots:\n${formatted}`);
-      }
-    }
-    const memoryBlock = memoryContextLines.length > 0
-      ? `\n\nINTEGRATED STUDENT MEMORY (Use this to personalize explanations and connect to the student's stored notes, exam focus, and past weak spots):\n"""\n${memoryContextLines.join('\n\n')}\n"""`
-      : '';
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const reply = await executeWithModelFallback(
-      genAI,
-      {
-        temperature: 0.4,
-        systemInstruction: `You are Gojo from Gojo.nerd, an academic syllabus and research partner with integrated personal memory for the current student.
-Base your academic explanations on the provided DOCUMENT CONTEXT and INTEGRATED STUDENT MEMORY below.
-If the student asks about their stored memories, weak spots, or notes, reference their INTEGRATED STUDENT MEMORY directly.
-If the student tells you to remember a preference, exam date, or note, confirm that you have stored it in their personal memory ledger.
-Keep responses concise (2 to 3 punchy paragraphs max).
-
-DOCUMENT CONTEXT:
-"""
-${(documentContext || '').slice(0, 50000)}
-"""${memoryBlock}`,
-      },
-      async (model) => {
-        const chat = model.startChat({
-          history: (history || []).map((h) => ({
-            role: h.role === 'user' ? 'user' : 'model',
-            parts: [{ text: h.content }],
-          })),
-        });
-        const result = await chat.sendMessage(message);
-        return result.response.text();
-      }
-    );
-
+    const reply = buildDocumentReferenceReply(message, documentContext, userMemory, autoSavedMemory);
     return res.status(200).json({ reply, autoSavedMemory });
   } catch (err) {
-    console.error('Vercel Chat Error:', err);
-    return res.status(500).json({ error: err.message || 'Failed to contact assistant.' });
+    console.error('Document lookup error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to search document.' });
   }
 };

@@ -859,7 +859,7 @@ export default function AcademicWorkspace() {
         cards: result.data.cards,
       };
 
-      // Set real, topic-clustered AI output into React state
+      // Set structured curriculum output into React state
       setStudyData(nextDeck);
       saveDeckToLibrary(nextDeck);
 
@@ -971,7 +971,7 @@ export default function AcademicWorkspace() {
         : /struggle|confus|hard|weak|miss/i.test(lowerQ)
         ? "weak_spot"
         : "note";
-      addMemoryEntry(cat, userQuery, "Document assistant");
+      addMemoryEntry(cat, userQuery, "Course reference");
     }
 
     const contextStr =
@@ -1002,7 +1002,7 @@ export default function AcademicWorkspace() {
         addMemoryEntry(
           data.autoSavedMemory.category || "note",
           data.autoSavedMemory.content,
-          data.autoSavedMemory.source || "Document assistant"
+          data.autoSavedMemory.source || "Course reference"
         );
       }
       if (res.ok && data && data.reply) {
@@ -1200,14 +1200,14 @@ export default function AcademicWorkspace() {
               disabled={isSynthesizing}
               className="mt-3 w-full py-2.5 px-4 rounded-lg bg-[#0F3470] hover:bg-[#0F3470] text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
             >
-              <span>{isSynthesizing ? "Synthesizing Canvas..." : "Synthesize Study Canvas"}</span>
+              <span>{isSynthesizing ? "Indexing document..." : "Build Study Guide"}</span>
               <span className="font-mono">&rarr;</span>
             </button>
           </div>
 
           <div className="p-3 border-t border-[#0F3470] bg-[#0F3470] text-[11px] font-mono text-white/90 flex justify-between">
-            <span>STATUS: READY</span>
-            <span className="text-[#93C5FD] font-semibold">ENGINE: GEMINI FLASH</span>
+            <span>Ready</span>
+            <span className="text-[#93C5FD] font-semibold">Syllabus Indexer</span>
           </div>
         </aside>
 
@@ -1221,7 +1221,7 @@ export default function AcademicWorkspace() {
                 { id: "summary", label: "Executive Principles & Insights" },
                 { id: "arena", label: "Active Recall Drills" },
                 { id: "cards", label: "Flashcards" },
-                { id: "chat", label: "Document Assistant" },
+                { id: "chat", label: "Course Reference" },
                 { id: "memory", label: `Personal Memory (${userMemories.length})` },
               ].map((tab) => (
                 <button
@@ -1536,25 +1536,22 @@ export default function AcademicWorkspace() {
               </div>
             )}
 
-            {/* 4. DOCUMENT ASSISTANT (PRESTIGE UI UPGRADE) */}
+            {/* 4. COURSE REFERENCE */}
             {activeTab === "chat" && (
               <div className="max-w-2xl mx-auto space-y-4">
                 <div className="bg-white border border-[#E2E8F0] rounded-2xl h-[calc(100dvh-200px)] md:h-[500px] flex flex-col shadow-sm overflow-hidden">
-                  {/* Header bar inside the assistant */}
+                  {/* Header bar inside course reference */}
                   <div className="px-4 py-3 border-b border-[#E2E8F0] flex justify-between items-center text-xs bg-white shrink-0">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                      <span className="font-mono font-bold text-[#0F3470] truncate">Gojo // Document In-Depth Assistant</span>
+                      <span className="font-mono font-bold text-[#0F3470] truncate">Course Reference &amp; Document Lookup</span>
                       <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-[#E4F1FF] text-[#0F3470] font-semibold border border-[#C5DFFF] shrink-0">
-                        Strictly Grounded
+                        Source-verified
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] font-mono text-[#64748B] shrink-0">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200">
-                        <svg className="w-3.5 h-3.5 text-[#0F3470]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span className="font-semibold text-[#0F3470]">Gemini Flash</span>
+                        <span className="font-semibold text-[#0F3470]">Source Index</span>
                       </span>
                     </div>
                   </div>
@@ -1565,20 +1562,20 @@ export default function AcademicWorkspace() {
                       <div className="text-center py-5 sm:py-7 px-2 max-w-lg mx-auto">
                         <div className="w-11 h-11 rounded-2xl bg-[#E4F1FF] text-[#0F3470] flex items-center justify-center mx-auto mb-3 shadow-sm border border-[#C5DFFF]">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                           </svg>
                         </div>
                         <h3 className="text-lg sm:text-xl font-serif font-bold text-[#0F3470] tracking-tight">
-                          What are we working on today?
+                          Search and cross-reference your material
                         </h3>
                         <p className="text-xs text-[#64748B] mt-1.5 leading-relaxed max-w-sm mx-auto">
-                          Ask deep questions about &ldquo;{studyData.filename}&rdquo;, clarify tricky exam nuances, or step through complex mechanisms.
+                          Look up definitions in &ldquo;{studyData.filename}&rdquo;, review exam distinctions, or check mechanisms.
                         </p>
                         <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4">
                           {[
-                            "💡 Explain primary mechanism",
-                            "🎯 Professor's exam insight",
-                            "⚡ Compare confusing terms",
+                            "Primary mechanism",
+                            "Exam insight",
+                            "Compare key terms",
                           ].map((promptLabel, pIdx) => (
                             <button
                               key={pIdx}
@@ -1586,8 +1583,8 @@ export default function AcademicWorkspace() {
                               onClick={() => {
                                 const queries = [
                                   "Explain the primary foundational mechanism step-by-step",
-                                  "What is the Professor's key exam insight and primary trap?",
-                                  "Compare the most confusing vocabulary terms in this lecture",
+                                  "What is the key exam insight and primary trap?",
+                                  "Compare the key vocabulary terms in this lecture",
                                 ];
                                 setChatInput(queries[pIdx]);
                               }}
@@ -1619,10 +1616,7 @@ export default function AcademicWorkspace() {
                         ) : (
                           <div className="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
                             <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-[#0F3470] px-1">
-                              <svg className="w-3.5 h-3.5 text-[#0F3470]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                              </svg>
-                              <span>Gemini 2.5 Flash // Sensei</span>
+                              <span>Syllabus Reference</span>
                             </div>
                             <div className="rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 text-xs sm:text-[13px] leading-relaxed text-slate-800 shadow-sm whitespace-pre-wrap">
                               {msg.content}
@@ -1636,7 +1630,7 @@ export default function AcademicWorkspace() {
                       <div className="flex flex-col items-start gap-1.5 max-w-[92%] mr-auto">
                         <div className="flex items-center gap-2 text-[11px] font-mono font-semibold text-[#0F3470] px-1">
                           <span className="w-2 h-2 rounded-full bg-[#0F3470] animate-ping" />
-                          <span className="animate-pulse">Thinking &amp; Scanning Slide Context...</span>
+                          <span className="animate-pulse">Looking up slide passages...</span>
                         </div>
                         <div className="w-full rounded-2xl rounded-tl-xs bg-white border border-[#E2E8F0] p-4 shadow-sm flex flex-col gap-2.5">
                           <div className="h-2.5 rounded-full bg-slate-200/90 animate-pulse" style={{ width: "94%" }} />
@@ -1647,7 +1641,7 @@ export default function AcademicWorkspace() {
                     )}
                   </div>
 
-                  {/* PRESTIGE UI PROMPT COMPOSER */}
+                  {/* REFERENCE SEARCH COMPOSER */}
                   <div className="p-2.5 sm:p-3.5 border-t border-[#E2E8F0] bg-[#F8F9FA]/50 shrink-0">
                     <form onSubmit={handleSendMessage} className="bg-white border border-[#CBD5E1] focus-within:border-[#0F3470] focus-within:ring-2 focus-within:ring-[#0F3470]/10 rounded-2xl p-2.5 sm:p-3 shadow-sm transition-all">
                       {/* Attachments Pill Strip */}
@@ -1659,7 +1653,7 @@ export default function AcademicWorkspace() {
                           <span className="truncate">{studyData.filename}</span>
                         </span>
                         <span className="inline-flex h-6 items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 text-[10px] font-mono text-[#64748B]">
-                          <span>⚡ Full-Deck Search Active</span>
+                          <span>Full-document index</span>
                         </span>
                       </div>
 
@@ -1674,7 +1668,7 @@ export default function AcademicWorkspace() {
                           }
                         }}
                         rows={2}
-                        placeholder="Ask about concepts, formulas, slide mechanisms, or traps..."
+                        placeholder="Search concepts, formulas, slide mechanisms, or exam notes..."
                         className="w-full bg-transparent border-0 p-1 text-xs sm:text-[13px] text-[#0F3470] placeholder:text-[#64748B] focus:outline-none resize-none leading-relaxed font-sans"
                       />
 
@@ -1682,12 +1676,9 @@ export default function AcademicWorkspace() {
                       <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-1">
                         <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#64748B]">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-[#0F3470] font-semibold">
-                            <svg className="w-3 h-3 text-[#0F3470]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            Grounded Mode
+                            Direct Reference
                           </span>
-                          <span className="hidden sm:inline text-slate-400 text-[10px]">• Enter ↵ to send</span>
+                          <span className="hidden sm:inline text-slate-400 text-[10px]">• Enter ↵ to search</span>
                         </div>
 
                         <button
@@ -1782,7 +1773,7 @@ export default function AcademicWorkspace() {
                     disabled={isSynthesizing}
                     className="w-full h-12 rounded-xl bg-[#0F3470] active:scale-[0.99] hover:opacity-95 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-60"
                   >
-                    <span>{isSynthesizing ? "Synthesizing Canvas..." : "Synthesize Study Canvas"}</span>
+                    <span>{isSynthesizing ? "Indexing document..." : "Build Study Guide"}</span>
                     <span className="font-mono text-base">&rarr;</span>
                   </button>
                 </div>
@@ -1803,7 +1794,7 @@ export default function AcademicWorkspace() {
                       </span>
                     </div>
                     <p className="text-[13px] leading-[19px] text-[#4B5565] mt-1">
-                      Stores your course notes, exam focus, missed recall checks, and uploaded syllabi. Automatically used by the Document Assistant and synthesis engine.
+                      Stores your course notes, exam focus, missed recall checks, and uploaded syllabi. Automatically referenced in Course Reference and study guide compilation.
                     </p>
                   </div>
                   <button
@@ -1829,7 +1820,7 @@ export default function AcademicWorkspace() {
                     <label className="text-[13px] font-medium text-[#111827]">
                       Store information in your memory
                     </label>
-                    <span className="text-xs text-[#6B7487]">Included in every assistant &amp; synthesis session</span>
+                    <span className="text-xs text-[#6B7487]">Included in every reference &amp; study session</span>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2.5">
                     <select
@@ -1900,7 +1891,7 @@ export default function AcademicWorkspace() {
                       <div className="p-8 text-center">
                         <div className="text-sm font-medium text-[#111827]">No stored memories in this view yet</div>
                         <p className="text-[13px] text-[#6B7487] mt-1 max-w-md mx-auto">
-                          Add a note above, click &ldquo;Save to memory&rdquo; on any syllabus mechanism, tell the Document Assistant &ldquo;Remember that...&rdquo;, or complete Active Recall drills to automatically log weak spots.
+                          Add a note above, click &ldquo;Save to memory&rdquo; on any syllabus mechanism, type &ldquo;Remember that...&rdquo; in Course Reference, or complete Active Recall drills to automatically log weak spots.
                         </p>
                       </div>
                     ) : (
@@ -2007,7 +1998,7 @@ export default function AcademicWorkspace() {
           { id: "summary", label: "Summary", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
           { id: "arena", label: "Drills", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
           { id: "cards", label: "Cards", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
-          { id: "chat", label: "Sensei", icon: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" },
+          { id: "chat", label: "Reference", icon: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" },
           { id: "memory", label: "Memory", icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" },
           { id: "source", label: "Upload", icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" },
         ].map((item) => {

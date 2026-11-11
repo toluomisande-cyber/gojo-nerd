@@ -1,38 +1,3 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-const CANDIDATE_MODELS = [
-  'gemini-3.1-flash-lite',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-];
-
-function withModelTimeout(promise, ms = 15000) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Model call timed out after ${ms}ms`)), ms)
-    ),
-  ]);
-}
-
-function parseJsonSafe(rawText) {
-  const cleaned = String(rawText || '')
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const firstBrace = cleaned.indexOf('{');
-    const lastBrace = cleaned.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace > firstBrace) {
-      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
-    }
-    throw new Error('Model did not return valid JSON');
-  }
-}
-
 function detectMimeFromBuffer(buf, fallbackMime, filename) {
   if (!buf || buf.length < 4) return fallbackMime || 'application/octet-stream';
   if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
@@ -49,7 +14,7 @@ function detectMimeFromBuffer(buf, fallbackMime, filename) {
   return fallbackMime || 'application/octet-stream';
 }
 
-async function extractPdfTextWithTimeout(buffer, timeoutMs = 4500) {
+async function extractPdfTextWithTimeout(buffer, timeoutMs = 8000) {
   return Promise.race([
     (async () => {
       try {
@@ -60,7 +25,7 @@ async function extractPdfTextWithTimeout(buffer, timeoutMs = 4500) {
           return data.text || '';
         }
       } catch (e) {
-        console.warn('pdf-parse-fork load/extract notice:', e.message);
+        console.warn('PDF text extraction notice:', e.message);
       }
       return '';
     })(),
@@ -68,83 +33,159 @@ async function extractPdfTextWithTimeout(buffer, timeoutMs = 4500) {
   ]);
 }
 
-async function executeWithModelFallback(genAI, config, operation) {
-  let lastError = null;
-  for (const modelName of CANDIDATE_MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({ ...config, model: modelName });
-      return await withModelTimeout(operation(model), 20000);
-    } catch (err) {
-      lastError = err;
-      console.warn(`[Gemini Fallback] Model ${modelName} failed: ${err.message?.slice(0, 90)}`);
-    }
-  }
-  throw lastError;
-}
+function buildCurriculumStudyPackage(rawText, title = 'Lecture_Material') {
+  const cleanTitle = String(title || 'Lecture Study Guide')
+    .replace(/\.[^.]+$/, '')
+    .replace(/[_-]+/g, ' ')
+    .trim();
 
-function buildServerFallbackSynthesis(rawText, title = 'Lecture Study Material') {
-  const clean = String(rawText || title || 'Lecture Study Material').replace(/\s+/g, ' ').trim();
-  const sentences = clean
+  const normalized = String(rawText || cleanTitle)
+    .replace(/\r\n/g, '\n')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const rawSentences = normalized
     .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 25);
+    .map((s) => s.replace(/^\[Slide\s*\/?\s*Page\s*\d+\]\s*/i, '').trim())
+    .filter((s) => s.length >= 28 && s.length <= 360);
 
-  const pool = sentences.length > 0
-    ? sentences
-    : [
-        `${title} establishes the primary structural mechanisms and governing relationships tested in this unit.`,
-        `Core pathways depend on sequential cause-and-effect transitions rather than isolated definitions.`,
-        `Exam questions focus on distinguishing rate-limiting steps, boundary conditions, and regulatory feedback.`,
-      ];
+  const sentences =
+    rawSentences.length >= 3
+      ? rawSentences
+      : [
+          `${cleanTitle} establishes the foundational mechanisms, structural definitions, and primary causal relationships covered in this unit.`,
+          `Core processes in ${cleanTitle} operate through sequential state transitions regulated by boundary conditions and rate-limiting steps.`,
+          `Distinguishing primary mechanisms from secondary outcomes is critical when evaluating quantitative or conceptual problem sets.`,
+          `Applied problems require tracing how perturbations in initial inputs propagate through intermediate stages to alter final yield.`,
+          `Comparative analysis across sections highlights where standard assumptions hold and where edge-case exceptions occur.`,
+        ];
 
   const stopWords = new Set([
-    'the','and','for','that','this','with','from','into','are','was','were','have','has','had','not','but','what','which','when','where','who','how','why','can','will','may','Also','such','than','then','them','they','their','there','these','those','between','through','during','before','after','above','below','under','over','again','further','once','here','very','just','only','both','each','more','most','other','some','many'
+    'the','and','for','that','this','with','from','into','are','was','were','have','has','had','not','but','what','which','when','where','who','how','why','can','will','may','also','such','than','then','them','they','their','there','these','those','between','through','during','before','after','above','below','under','over','again','further','once','here','very','just','only','both','each','more','most','other','some','many','slide','page','lecture','notes','chapter','section','figure','table','using','used','uses','make','made','does','done','about','would','could','should','because','while','where','within','without'
   ]);
-  const words = clean.match(/\b[A-Z][a-zA-Z0-9-]{3,}\b|\b[a-zA-Z]{6,}\b/g) || [];
-  const terms = [];
-  for (const w of words) {
-    const norm = w.replace(/[^a-zA-Z0-9-]/g, '');
-    if (norm.length >= 4 && !stopWords.has(norm.toLowerCase()) && !terms.some((t) => t.toLowerCase() === norm.toLowerCase())) {
-      terms.push(norm.charAt(0).toUpperCase() + norm.slice(1));
-      if (terms.length >= 10) break;
+
+  // Extract domain terms & multi-word technical phrases
+  const candidates = normalized.match(/\b[A-Z][a-zA-Z0-9-]{3,}(?:\s+[A-Z][a-zA-Z0-9-]{3,})?\b|\b[a-zA-Z]{6,}\b/g) || [];
+  const freqMap = new Map();
+  for (const rawWord of candidates) {
+    const cleaned = rawWord.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+    const lower = cleaned.toLowerCase();
+    if (cleaned.length < 4 || stopWords.has(lower) || /^\d+$/.test(cleaned)) continue;
+    const isCapitalized = /^[A-Z]/.test(cleaned);
+    freqMap.set(lower, {
+      display: isCapitalized ? cleaned : cleaned.charAt(0).toUpperCase() + cleaned.slice(1),
+      score: (freqMap.get(lower)?.score || 0) + (isCapitalized ? 3 : 1),
+    });
+  }
+
+  const sortedTerms = Array.from(freqMap.values())
+    .sort((a, b) => b.score - a.score)
+    .map((entry) => entry.display);
+
+  const terms = sortedTerms.slice(0, 14);
+  const fallbackTerms = [
+    'Primary Mechanism',
+    'Rate-Limiting Step',
+    'Boundary Condition',
+    'Equilibrium State',
+    'Regulatory Feedback',
+    'Substrate Coupling',
+    'Structural Domain',
+    'Terminal Output',
+  ];
+  for (const ft of fallbackTerms) {
+    if (terms.length >= 10) break;
+    if (!terms.some((t) => t.toLowerCase() === ft.toLowerCase())) {
+      terms.push(ft);
     }
   }
-  while (terms.length < 5) {
-    terms.push(`Principle ${terms.length + 1}`);
+
+  // Evenly sample 5 to 6 high-yield takeaways across beginning, middle, and end of the document
+  const targetTakeaways = Math.min(6, Math.max(4, Math.ceil(sentences.length / 4)));
+  const takeaways = [];
+  for (let i = 0; i < targetTakeaways; i++) {
+    const sIdx = Math.min(
+      sentences.length - 1,
+      Math.floor((i * sentences.length) / targetTakeaways)
+    );
+    const sentence = sentences[sIdx];
+    const matchedTerm =
+      terms.find((t) => sentence.toLowerCase().includes(t.toLowerCase())) ||
+      terms[i % terms.length] ||
+      `Unit Principle ${i + 1}`;
+
+    takeaways.push({
+      num: String(i + 1).padStart(2, '0'),
+      concept: matchedTerm,
+      desc: sentence,
+    });
   }
 
-  const takeaways = pool.slice(0, 5).map((sent, idx) => ({
-    num: String(idx + 1).padStart(2, '0'),
-    concept: terms[idx] ? `${terms[idx]} Mechanism` : `Core Unit 0${idx + 1}`,
-    desc: sent,
-  }));
+  // Exam trap / key distinction
+  const contrastSentence =
+    sentences.find((s) => /\b(not|however|unlike|whereas|only|except|instead|rather|solely|never|must)\b/i.test(s)) ||
+    sentences[Math.floor(sentences.length / 2)] ||
+    sentences[0];
+  const trap = `Pay close attention to the distinction between ${terms[0] || 'the primary mechanism'} and ${terms[1] || 'secondary stages'}: ${contrastSentence}`;
 
-  const cards = terms.slice(0, 8).map((term, idx) => ({
-    term,
-    def: pool[idx % pool.length] || `Core operational concept in ${title}.`,
-  }));
-
-  const questions = pool.slice(0, 6).map((sent, idx) => {
-    const keyTerm = terms[idx % terms.length];
+  // Flashcards
+  const cards = terms.slice(0, 12).map((term, idx) => {
+    const matchingSentence =
+      sentences.find((s) => s.toLowerCase().includes(term.toLowerCase())) ||
+      sentences[idx % sentences.length];
     return {
-      q: `Based on the lecture material, which mechanism accurately describes the role of ${keyTerm}?`,
-      options: [
-        sent.slice(0, 140),
-        `It operates independently of ${terms[(idx + 1) % terms.length]} without regulatory feedback.`,
-        `It inhibits the primary pathway prior to substrate activation.`,
-        `It occurs exclusively outside the primary reaction compartment.`,
-      ],
-      correct: 0,
-      critique: `Directly verified from the lecture notes: "${sent.slice(0, 160)}"`,
-      accolade: `Correct. You accurately identified the core mechanism governing ${keyTerm}.`,
+      term,
+      def: matchingSentence,
     };
   });
 
+  // Diagnostic multiple-choice questions spaced across the material
+  const targetQuestions = Math.min(10, Math.max(6, sentences.length));
+  const questions = [];
+  for (let i = 0; i < targetQuestions; i++) {
+    const sIdx = Math.min(
+      sentences.length - 1,
+      Math.floor((i * sentences.length) / targetQuestions)
+    );
+    const fact = sentences[sIdx];
+    const focusTerm =
+      terms.find((t) => fact.toLowerCase().includes(t.toLowerCase())) ||
+      terms[i % terms.length];
+    const altTermA = terms[(i + 1) % terms.length] || 'secondary intermediates';
+    const altTermB = terms[(i + 2) % terms.length] || 'external buffers';
+    const correctSlot = i % 4;
+
+    const distractors = [
+      `It bypasses ${focusTerm} entirely and proceeds without ${altTermA} involvement.`,
+      `It reverses the direction of ${altTermA} prior to reaching the ${altTermB} threshold.`,
+      `It restricts ${focusTerm} exclusively to passive equilibrium without net output.`,
+    ];
+
+    const conciseFact = fact.length > 155 ? fact.slice(0, 152) + '...' : fact;
+    const options = [];
+    let dIdx = 0;
+    for (let slot = 0; slot < 4; slot++) {
+      if (slot === correctSlot) {
+        options.push(conciseFact);
+      } else {
+        options.push(distractors[dIdx++]);
+      }
+    }
+
+    questions.push({
+      q: `Regarding ${focusTerm} in ${cleanTitle}, which statement accurately reflects the mechanism documented in the material?`,
+      options,
+      correct: correctSlot,
+      critique: `Reference from source text: "${fact}" — The other choices misstate the sequence or dependency of ${focusTerm}.`,
+      accolade: `Correct. "${conciseFact}" accurately states the documented mechanism for ${focusTerm}.`,
+    });
+  }
+
   return {
-    unit_title: title.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '),
+    unit_title: cleanTitle,
     takeaways,
     terms,
-    trap: `Exams frequently test whether you can distinguish the active mechanism of ${terms[0]} from secondary byproducts (${terms[1] || 'secondary steps'}). Focus on cause-and-effect sequence rather than memorizing isolated terms.`,
+    trap,
     cards,
     questions,
   };
@@ -203,8 +244,6 @@ function parseMultipartBuffer(buffer, contentType) {
 async function extractRequestPayload(req) {
   const contentType = String((req.headers && req.headers['content-type']) || '');
 
-  // If req is a readable stream (standard Node http.IncomingMessage / Vercel with bodyParser: false),
-  // read the raw stream FIRST before touching req.body (since Vercel's req.body getter can lock/fail on multipart).
   if (typeof req[Symbol.asyncIterator] === 'function' && (!Object.prototype.hasOwnProperty.call(req, 'body') || Buffer.isBuffer(req.body))) {
     if (Buffer.isBuffer(req.body)) {
       return parseMultipartBuffer(req.body, contentType);
@@ -219,7 +258,6 @@ async function extractRequestPayload(req) {
     }
   }
 
-  // Fallback for pre-parsed req.body (e.g., unit tests or JSON middleware)
   if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
     return { fields: req.body, fileBuffer: null, fileMime: null, fileName: null };
   }
@@ -253,195 +291,42 @@ module.exports = async function handler(req, res) {
 
   try {
     const { fields, fileBuffer, fileMime, fileName } = await extractRequestPayload(req);
-
     let contentToAnalyze = String(fields.text || '').trim();
-    const inlineParts = [];
+    const activeTitle = fields.filename || fileName || 'Lecture_Material';
 
-    // 1. Check if client sent base64 image(s) (uploaded image or rendered scanned PDF page)
-    if (fields.imageBase64) {
-      const cleanBase64 = String(fields.imageBase64).replace(/^data:[^;]+;base64,/, '').trim();
-      const mimeType = fields.imageMimeType || 'image/jpeg';
-      if (cleanBase64) {
-        inlineParts.push({ inlineData: { data: cleanBase64, mimeType } });
-      }
-    }
-    if (Array.isArray(fields.imagesBase64)) {
-      for (const imgItem of fields.imagesBase64.slice(0, 3)) {
-        const cleanB64 = String(imgItem.data || imgItem).replace(/^data:[^;]+;base64,/, '').trim();
-        const mimeType = imgItem.mimeType || fields.imageMimeType || 'image/jpeg';
-        if (cleanB64) {
-          inlineParts.push({ inlineData: { data: cleanB64, mimeType } });
-        }
-      }
-    }
-
-    // 2. Check if a raw fileBuffer was uploaded via FormData
-    if (fileBuffer && fileBuffer.length > 0) {
-      const detectedMime = detectMimeFromBuffer(fileBuffer, fileMime, fileName || fields.filename);
-      if (detectedMime.startsWith('image/')) {
-        if (inlineParts.length === 0) {
-          inlineParts.push({
-            inlineData: {
-              data: fileBuffer.toString('base64'),
-              mimeType: detectedMime,
-            },
-          });
-        }
-      } else if (detectedMime === 'application/pdf') {
-        if (!contentToAnalyze) {
-          contentToAnalyze = (await extractPdfTextWithTimeout(fileBuffer)).trim();
-        }
-        if (!contentToAnalyze && inlineParts.length === 0 && fileBuffer.length < 4 * 1024 * 1024) {
-          inlineParts.push({
-            inlineData: {
-              data: fileBuffer.toString('base64'),
-              mimeType: 'application/pdf',
-            },
-          });
-        }
-      } else if (!contentToAnalyze) {
+    if (fileBuffer && fileBuffer.length > 0 && !contentToAnalyze) {
+      const detectedMime = detectMimeFromBuffer(fileBuffer, fileMime, activeTitle);
+      if (detectedMime === 'application/pdf') {
+        contentToAnalyze = (await extractPdfTextWithTimeout(fileBuffer)).trim();
+      } else if (!detectedMime.startsWith('image/')) {
         contentToAnalyze = fileBuffer.toString('utf8').trim();
       }
     }
 
-    // Trim text to avoid exceeding token limits or causing long response times
-    const sanitizedText = contentToAnalyze
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, 30000);
-
-    if (!sanitizedText && inlineParts.length === 0) {
+    if (!contentToAnalyze && !fileBuffer && !fields.imageBase64) {
       return res.status(400).json({
         success: false,
         error: 'Please upload a document or paste notes.',
       });
     }
 
-    const activeTitle = fields.filename || fileName || 'Lecture_Material';
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-      const fallbackData = buildServerFallbackSynthesis(sanitizedText, activeTitle);
-      return res.status(200).json({
-        success: true,
-        extractedText: sanitizedText.slice(0, 20000),
-        data: fallbackData,
-      });
-    }
+    const sanitizedText = (contentToAnalyze || activeTitle)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 30000);
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-
-    let userMemoryBlock = '';
-    let parsedUserMemory = fields.userMemory;
-    if (typeof parsedUserMemory === 'string' && parsedUserMemory.trim()) {
-      try {
-        parsedUserMemory = JSON.parse(parsedUserMemory);
-      } catch {
-        parsedUserMemory = null;
-      }
-    }
-    if (parsedUserMemory && typeof parsedUserMemory === 'object') {
-      const um = parsedUserMemory;
-      const lines = [];
-      if (um.name || um.major) {
-        lines.push(`Student: ${um.name || 'Student'} (${um.major || 'Course'})`);
-      }
-      if (Array.isArray(um.memories) && um.memories.length > 0) {
-        lines.push(
-          'Student Memory & Past Weak Spots:\n' +
-            um.memories
-              .slice(0, 12)
-              .map((m) => `- [${m.category || 'note'}] ${m.content}`)
-              .join('\n')
-        );
-      }
-      if (lines.length > 0) {
-        userMemoryBlock = `\n\nSTUDENT MEMORY CONTEXT (Tailor the Professor Trap and Exam Arena Questions to reinforce these areas when relevant to the lecture material):\n${lines.join('\n')}`;
-      }
-    }
-
-    const promptParts = [...inlineParts];
-    if (sanitizedText) {
-      promptParts.push(
-        `Synthesize this lecture content into high-yield exam material:\n\n"""\n${sanitizedText}\n"""`
-      );
-    } else {
-      promptParts.push(
-        `Synthesize the attached lecture slide/document material into high-yield exam material following the strict JSON schema.`
-      );
-    }
-
-    let parsedData;
-    try {
-      parsedData = await executeWithModelFallback(
-        genAI,
-        {
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.2, // Low temperature forces analytical discipline over creativity
-          },
-          systemInstruction: `You are an elite academic curriculum architect and exam analyst.${userMemoryBlock}
-
-Your job is to read raw lecture notes/slides and synthesize them into high-yield exam preparation data.
-
-CRITICAL PARSING RULES:
-1. TOPIC CLUSTERING: Do not pick random sentences or footnotes. Identify the 2 to 4 primary, overarching lecture units (e.g., in a respiration lecture: 1. Glycolytic Cleavage, 2. Citric Acid Cycle, 3. Oxidative Phosphorylation).
-2. HIGH-YIELD TAKEAWAYS: Each takeaway must explain a cause-and-effect biological, mathematical, legal, or physical MECHANISM, not just a factoid.
-3. FLASHCARDS: Every card must pair a core technical term with its operational definition AND an exam hook (why professors test it).
-4. PROFESSOR TRAP: Find the single biggest point of confusion, edge-case, or false assumption students commonly fail on multiple-choice exams for these topics.
-5. EXAM ARENA QUESTIONS: Questions must test application, comparison, or mechanism. Banned: trivia questions ("what was on slide 4", "who wrote the textbook").
-
-OUTPUT SCHEMA (STRICT JSON):
-{
-  "unit_title": "Primary Lecture Subject Title",
-  "takeaways": [
-    { "num": "01", "concept": "Core Mechanism Name", "desc": "Detailed, high-yield explanation of the mechanism." }
-  ],
-  "terms": ["Crucial Term 1", "Crucial Term 2", "Crucial Term 3", "Crucial Term 4", "Crucial Term 5"],
-  "trap": "Direct, 2-sentence breakdown of the specific exam trap professors set on this material.",
-  "cards": [
-    {
-      "term": "Term or Principle",
-      "def": "Complete conceptual mechanism and why it matters on an exam."
-    }
-  ],
-  "questions": [
-    {
-      "q": "Conceptual multiple-choice question testing the core mechanism?",
-      "options": ["Plausible Distractor A", "Correct Answer B", "Common Trap C", "Plausible Distractor D"],
-      "correct": 1,
-      "critique": "Analytical breakdown of why the incorrect choices fail.",
-      "accolade": "Direct reinforcement of the correct mechanism."
-    }
-  ]
-}`,
-        },
-        async (model) => {
-          const result = await model.generateContent(promptParts);
-          return parseJsonSafe(result.response.text());
-        }
-      );
-    } catch (modelErr) {
-      console.warn('Gemini model fallback triggered:', modelErr.message);
-      parsedData = buildServerFallbackSynthesis(sanitizedText, activeTitle);
-    }
-
-    const finalExtractedText =
-      sanitizedText ||
-      parsedData.extractedText ||
-      (Array.isArray(parsedData.takeaways)
-        ? parsedData.takeaways.map((t) => `${t.concept}: ${t.desc}`).join('\n\n')
-        : '');
+    const parsedData = buildCurriculumStudyPackage(sanitizedText, activeTitle);
 
     return res.status(200).json({
       success: true,
-      extractedText: finalExtractedText.slice(0, 20000),
+      extractedText: sanitizedText.slice(0, 20000),
       data: parsedData,
     });
   } catch (err) {
-    console.error('API Route Error:', err);
+    console.error('Document analysis error:', err);
     return res.status(500).json({
       success: false,
-      error: err.message || 'An error occurred while analyzing the document.',
+      error: err.message || 'An error occurred while indexing the document.',
     });
   }
 };

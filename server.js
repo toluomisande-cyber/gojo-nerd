@@ -19,7 +19,6 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const analyzeHandler = require('./api/analyze');
 const chatHandler = require('./api/chat');
 const memoryHandler = require('./api/memory');
