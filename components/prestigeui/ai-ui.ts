@@ -4,3 +4,4 @@ export const DEFAULT_TRANSITION = {
   duration: 0.35,
   ease: EASE,
 };
+

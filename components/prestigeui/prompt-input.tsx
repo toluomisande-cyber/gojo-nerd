@@ -396,3 +396,4 @@ export function PromptInput({
     </div>
   );
 }
+

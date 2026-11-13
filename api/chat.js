@@ -109,7 +109,7 @@ async function queryFreeLimitedModel(message, documentContext, userMemory, histo
 
     const openRouterKey = (process.env.OPENROUTER_API_KEY || '').trim();
     if (openRouterKey) {
-      const orModel = (process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free').trim();
+      const orModel = (process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct').trim().replace(/:free$/, '');
       const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
